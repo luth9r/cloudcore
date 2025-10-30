@@ -2843,70 +2843,54 @@ class CloudCoreDrive {
         try {
             console.log('Starting empty trash operation...');
 
-            // Show simple notification
-            this.notifications.info(this.i18n.t('emptyingTrash') || 'Emptying trash...', { duration: 0 });
-
-            // Get trash items with proper validation
-            const response = await this.api.getTrash(this.currentUserId, {
-                page: '1',
-                pageSize: '9999' // Get all items
-            });
-
-            console.log('Trash response:', response);
-
-            let trashItems = [];
-            if (response) {
-                if (Array.isArray(response)) {
-                    trashItems = response;
-                } else if (response.data && Array.isArray(response.data)) {
-                    trashItems = response.data;
-                } else if (response.items && Array.isArray(response.items)) {
-                    trashItems = response.items;
-                }
-            }
-
-            console.log('Trash items:', trashItems);
-
-            if (!trashItems || trashItems.length === 0) {
-                this.notifications.info(this.i18n.t('trashAlreadyEmpty') || 'Trash is already empty');
+            // Use already loaded items from current view
+            if (this.allLoadedItems.length === 0) {
                 return;
             }
 
-            const itemIds = trashItems.map((item) => item.id);
+            const itemIds = this.allLoadedItems.map((item) => item.id);
 
             const result = await this.api.bulkDeletePermanentlyItems(this.currentUserId, itemIds, {
                 concurrency: 5,
                 onItemComplete: (itemId, result, error) => {
                     if (error) {
-                        console.error(`Failed to delete item ${itemId}:`, error);
+                        console.error('Failed to delete item', itemId, error);
                     }
                 }
             });
 
-            // Handle results
+            // Handle results...
             const succeededCount = result.succeeded.length;
             const failedCount = result.failed.length;
 
-            if (succeededCount > 0) {
-                const successText =
-                    this.i18n.t('trashEmptiedCount', { count: succeededCount }) ||
-                    `${succeededCount} items deleted permanently`;
-                this.notifications.success(successText);
-            }
+            // Log results
+            console.log('Delete results:', { succeededCount, failedCount });
 
             if (failedCount > 0) {
-                const errorText =
-                    this.i18n.t('failedEmptyTrashPartial', { count: failedCount }) ||
-                    `Failed to delete ${failedCount} items`;
-                this.notifications.error(errorText);
                 console.error('Failed to delete items:', result.failed);
             }
 
+            // Reload files FIRST (before showing notification)
             await this.loadFiles(null, true, true);
+
+            // Show SINGLE final notification AFTER reload
+            if (failedCount === 0 && succeededCount > 0) {
+                this.notifications.success(
+                    this.i18n.t('trashEmptiedCount', { count: succeededCount }) ||
+                        `${succeededCount} items deleted permanently`
+                );
+            } else if (succeededCount > 0 && failedCount > 0) {
+                this.notifications.warning(
+                    this.i18n.t('failedEmptyTrashPartial', { count: failedCount }) ||
+                        `${succeededCount} deleted, ${failedCount} failed`
+                );
+            } else if (failedCount > 0) {
+                this.notifications.error(this.i18n.t('failedEmptyTrash') || 'Failed to empty trash');
+            }
+
             console.log('Empty trash completed successfully');
         } catch (error) {
             console.error('Empty trash error:', error);
-            this.notifications.error(this.i18n.t('failedEmptyTrash') || 'Failed to empty trash');
         }
     }
 

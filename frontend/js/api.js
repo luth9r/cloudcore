@@ -1,5 +1,5 @@
 export class ApiClient {
-    constructor(baseUrl = 'http://localhost:5000') {
+    constructor(baseUrl = 'http://localhost:5000') { // FIXME USE SERVER IP AND NGINX PORT
         this.baseUrl = baseUrl;
         this.authToken = localStorage.getItem('cloudcore_token');
     }

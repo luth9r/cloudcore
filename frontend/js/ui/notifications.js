@@ -19,7 +19,7 @@ class NotificationManager {
     }
 
 
-    show(message, type = 'info', duration = 5000, title = null, params = {}) {
+    show(message, type = 'info', duration = 3000, title = null, params = {}) {
         const id = `notification-${Date.now()}-${Math.random()}`;
         
 
@@ -49,7 +49,7 @@ class NotificationManager {
             <button class="notification-close" aria-label="${this.i18n ? this.i18n.t('close') : 'Close'}">
                 <span class="material-symbols-outlined">close</span>
             </button>
-            ${duration > 0 ? '<div class="notification-progress"></div>' : ''}
+            ${duration > 0 ? `<div class="notification-progress" style="animation-duration: ${duration}ms;"></div>` : ''}
         `;
 
 
@@ -115,19 +115,19 @@ class NotificationManager {
         return configs[type] || configs.info;
     }
 
-    success(message, duration = 5000, title = null, params = {}) {
+    success(message, duration = 3000, title = null, params = {}) {
         return this.show(message, 'success', duration, title, params);
     }
 
-    error(message, duration = 7000, title = null, params = {}) {
+    error(message, duration = 4000, title = null, params = {}) {
         return this.show(message, 'error', duration, title, params);
     }
 
-    warning(message, duration = 6000, title = null, params = {}) {
+    warning(message, duration = 3500, title = null, params = {}) {
         return this.show(message, 'warning', duration, title, params);
     }
 
-    info(message, duration = 5000, title = null, params = {}) {
+    info(message, duration = 3000, title = null, params = {}) {
         return this.show(message, 'info', duration, title, params);
     }
 }
