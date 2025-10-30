@@ -122,4 +122,66 @@ public class AuthService : IAuthService
 
         return _tokenService.GenerateJwtToken(user);
     }
+
+    public async Task<bool> SendPasswordResetEmailAsync(string email)
+    {
+        _logger.LogInformation($"Password reset requested for email: {email}");
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (user == null)
+        {
+            _logger.LogWarning($"Password reset requested for non-existent email: {email}");
+            return true;
+        }
+        var resetToken = _tokenService.GeneratePasswordResetToken(user);
+
+        try
+        {
+            var resetUrl = $"https://localhost:3443/reset-password.html?token={resetToken}";
+
+            await _emailSendService.SendPasswordResetAsync(
+                user.Email,
+                resetUrl,
+                "CloudCore - Password Reset Request"
+            );
+
+            _logger.LogInformation($"Password reset email sent to: {email}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to send password reset email to: {email}");
+            return false;
+        }
+    }
+
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword)
+    {
+        _logger.LogInformation("Attempting password reset");
+
+        var userId = await _tokenService.VerifyPasswordResetTokenAsync(token);
+
+        if (userId == null)
+        {
+            _logger.LogWarning("Invalid or expired password reset token");
+            return false;
+        }
+
+        var user = await _context.Users.FindAsync(userId.Value);
+
+        if (user == null)
+        {
+            _logger.LogWarning($"User not found for ID: {userId}");
+            return false;
+        }
+
+        user.PasswordHash = HashPassword(newPassword);
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation($"Password reset successful for user: {user.Username}");
+        return true;
+    }
 }

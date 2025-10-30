@@ -88,4 +88,39 @@ public class AuthController : ControllerBase
             Token = jwtToken
         });
     }
+
+
+    /// <summary>
+    /// Request password reset email
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        _logger.LogInformation($"Password reset requested for: {request.Email}");
+
+        await _authService.SendPasswordResetEmailAsync(request.Email);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Reset password with token
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        _logger.LogInformation("Password reset attempt");
+
+        var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword);
+
+        if (!result)
+        {
+            return BadRequest(ApiResponse.Error(
+                "Invalid or expired reset token",
+                ErrorCodes.INVALID_RESET_TOKEN
+            ));
+        }
+
+        return Ok();
+    }
 }

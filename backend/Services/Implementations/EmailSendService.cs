@@ -35,5 +35,34 @@ namespace CloudCore.Services.Implementations
                 throw;
             }
         }
+
+        public async Task SendPasswordResetAsync(string toEmail, string resetUrl, string subject)
+        {
+            try
+            {
+                var contentRoot = AppContext.BaseDirectory;
+                var templatePath = Path.Combine(contentRoot, "EmailTemplates", "ResetPassword.cshtml");
+                string template = File.ReadAllText(templatePath);
+                _logger.LogInformation($"Template length: {template.Length}");
+                _logger.LogInformation($"Contains placeholder: {template.Contains("{{ResetUrl}}")}");
+
+                string htmlBody = template.Replace("{{ResetUrl}}", resetUrl);
+
+                // ✅ ДЕБАГ: перевіряємо після replace
+                _logger.LogInformation($"After replace contains placeholder: {htmlBody.Contains("{{ResetUrl}}")}");
+                _logger.LogInformation($"After replace contains actual URL: {htmlBody.Contains(resetUrl)}");
+
+                await _fluentEmail
+                    .To(toEmail)
+                    .Subject(subject)
+                    .Body(htmlBody, isHtml: true)
+                    .SendAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to send email to {toEmail}");
+                throw;
+            }
+        }
     }
 }

@@ -118,7 +118,7 @@ class AuthManager {
             } else if (error.message.toLowerCase().includes('unauthorized')) {
                 errorMessage = this.i18n.t('invalidCredentials');
             } else if (error.message) {
-                errorMessage = this.i18n.t('signInFailed');;
+                errorMessage = this.i18n.t('signInFailed');
             }
 
             this.showError(errorMessage);
@@ -338,3 +338,94 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
+
+const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+
+if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        showForgotPasswordModal();
+    });
+}
+
+function showForgotPasswordModal() {
+    const i18n = new I18n();
+
+    const modalHTML = `
+        <div class="modal" id="forgotPasswordModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div class="modal-content" style="background: var(--bg-primary); padding: 30px; max-width: 440px; width: 90%; border-radius: 16px; box-shadow: 0 8px 24px var(--shadow-md); position: relative;">
+                <button class="close-button" id="closeForgotModal" style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">✕</button>
+                <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 24px;">${i18n.t(
+                    'resetPassword'
+                )}</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">${i18n.t('resetPasswordMessage')}</p>
+                
+                <div class="form-group" style="text-align: left;">
+                    <label for="resetEmail" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-primary);">${i18n.t(
+                        'email'
+                    )}</label>
+                    <input type="email" id="resetEmail" placeholder="your@email.com" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-primary); color: var(--text-primary);">
+                </div>
+                
+                <button id="sendResetBtn" class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, var(--color-blue) 0%, #1557b0 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    ${i18n.t('sendResetLink')}
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const modal = document.getElementById('forgotPasswordModal');
+    const closeBtn = document.getElementById('closeForgotModal');
+    const sendBtn = document.getElementById('sendResetBtn');
+    const emailInput = document.getElementById('resetEmail');
+
+    const api = new ApiClient();
+
+    // Close modal
+    closeBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+
+    // Send reset link
+    sendBtn.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+
+        if (!email) {
+            showMessage(i18n.t('pleaseEnterEmail'), 'error');
+            return;
+        }
+
+        const originalText = sendBtn.textContent;
+
+        try {
+            sendBtn.disabled = true;
+            sendBtn.textContent = i18n.t('sending');
+
+            await api.forgotPassword(email);
+
+            modal.remove();
+            showMessage(i18n.t('resetLinkSent'), 'success');
+        } catch (error) {
+            console.error('Forgot password error:', error);
+            showMessage(error.message || i18n.t('resetLinkFailed'), 'error');
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = originalText;
+        }
+    });
+}
+
+function showMessage(message, type) {
+    const messageEl =
+        type === 'error' ? document.getElementById('error-message') : document.getElementById('success-message');
+
+    messageEl.textContent = message;
+    messageEl.style.display = 'flex';
+
+    setTimeout(() => {
+        messageEl.style.display = 'none';
+    }, 5000);
+}

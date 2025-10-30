@@ -49,6 +49,10 @@ public interface IAuthService
 
     Task<string?> ConfirmEmailAndGenerateTokenAsync(string token);
 
+
+    Task<bool> SendPasswordResetEmailAsync(string email);
+    Task<bool> ResetPasswordAsync(string token, string newPassword);
+
     #endregion
 
 }

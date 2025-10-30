@@ -2,10 +2,11 @@
 
 namespace CloudCore.Contracts.Requests
 {
-    public class ChangeEmailRequest
+    public class ForgotPasswordRequest
     {
         [Required]
         [EmailAddress]
-        public string NewEmail { get; set; } = null!;
+        public string Email { get; set; } = string.Empty;
     }
 }
+

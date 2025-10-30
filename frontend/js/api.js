@@ -71,6 +71,24 @@ export class ApiClient {
         return this.handleResponse(response);
     }
 
+    async forgotPassword(email) {
+        const response = await fetch(`${this.baseUrl}/auth/forgot-password`, {
+            method: 'POST',
+            headers: this.getHeaders(false),
+            body: JSON.stringify({ email })
+        });
+        return this.handleResponse(response);
+    }
+
+    async resetPassword(token, newPassword) {
+        const response = await fetch(`${this.baseUrl}/auth/reset-password`, {
+            method: 'POST',
+            headers: this.getHeaders(false),
+            body: JSON.stringify({ token, newPassword })
+        });
+        return this.handleResponse(response);
+    }
+
     async verifyEmailToken(token) {
         const response = await fetch(`${this.baseUrl}/auth/verify-email`, {
             method: 'POST',

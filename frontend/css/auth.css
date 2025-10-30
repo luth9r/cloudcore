@@ -801,3 +801,28 @@ input:valid:not(:placeholder-shown) + .input-hint {
         transform: none;
     }
 }
+
+/* Forgot Password Link */
+.forgot-password-link {
+    text-align: right;
+    margin-top: -12px;
+}
+
+.forgot-password-link a {
+    font-size: 13px;
+    color: var(--text-link);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.forgot-password-link a:hover {
+    color: var(--color-blue);
+    text-decoration: underline;
+}
+
+.forgot-password-link a:hover::after {
+    transform: translateX(3px);
+}

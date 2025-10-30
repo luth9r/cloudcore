@@ -17,5 +17,8 @@ namespace CloudCore.Services.Interfaces
         Task<bool> VerifyEmailTokenAsync(string token);
         ClaimsPrincipal? ValidateToken(string token);
         int? GetUserIdFromToken(string token);
+
+        string GeneratePasswordResetToken(User user);
+        Task<int?> VerifyPasswordResetTokenAsync(string token);
     }
 }

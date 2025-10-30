@@ -11,6 +11,8 @@
         public const string INVALID_NAME_FORMAT = "INVALID_NAME_FORMAT";
         public const string USERNAME_EXISTS = "USERNAME_EXISTS";
         public const string EMAIL_EXISTS = "EMAIL_EXISTS";
+        public const string INVALID_RESET_TOKEN = "INVALID_RESET_TOKEN";
+
 
         public const string ITEM_NOT_FOUND = "ITEM_NOT_FOUND";
         public const string FILE_NOT_FOUND = "FILE_NOT_FOUND";
