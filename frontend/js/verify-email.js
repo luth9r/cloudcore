@@ -48,4 +48,7 @@ function showLoginButton() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', verifyEmail);
+document.addEventListener('DOMContentLoaded', () => {
+    i18n.updateUI(); 
+    verifyEmail();
+});

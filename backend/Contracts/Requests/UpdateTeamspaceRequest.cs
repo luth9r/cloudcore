@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CloudCore.Contracts.Requests
 {
-    public class UpdateTeamspaceRequest
+    public record UpdateTeamspaceRequest
     {
         [Required(ErrorMessage = "Teamspace name is required")]
         [StringLength(255, MinimumLength = 1, ErrorMessage = "Teamspace name must be between 1 and 255 characters")]

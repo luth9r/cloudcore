@@ -47,10 +47,26 @@ public interface IAuthService
     /// <returns>True if password is correct, false otherwise</returns>
     bool VerifyPassword(string password, string hash);
 
+    /// <summary>
+    /// Confirms user email address using verification token received via email
+    /// </summary>
+    /// <param name="token">Email verification JWT token sent to user</param>
+    /// <returns>Fresh JWT authentication token if successful, null if token is invalid or expired</returns>
     Task<string?> ConfirmEmailAndGenerateTokenAsync(string token);
 
-
+    /// <summary>
+    /// Sends a password reset email with a secure reset link to user's email address
+    /// </summary>
+    /// <param name="email">Email address for password reset request</param>
+    /// <returns>True if reset email is successfully queued for sending</returns>
     Task<bool> SendPasswordResetEmailAsync(string email);
+
+    /// <summary>
+    /// Resets user password using a valid password reset token
+    /// </summary>
+    /// <param name="token">Password reset JWT token received in email</param>
+    /// <param name="newPassword">New password for the user account</param>
+    /// <returns>True if password is successfully reset, false if token is invalid or expired</returns>
     Task<bool> ResetPasswordAsync(string token, string newPassword);
 
     #endregion

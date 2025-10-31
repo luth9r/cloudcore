@@ -4,17 +4,62 @@ using CloudCore.Domain.Entities;
 
 namespace CloudCore.Services.Interfaces
 {
+    /// <summary>
+    /// Repository for managing file and folder items in the database
+    /// </summary>
     public interface IItemRepository
     {
+        #region Retrieval - Single Item
+
+        /// <summary>
+        /// Asynchronously retrieves a single item by its ID, ensuring it belongs to the specified user.
+        /// </summary>
+        /// <param name="userId">The ID of the user who owns the item.</param>
+        /// <param name="itemtId">The ID of the item to retrieve.</param>
+        /// <param name="itemType">The Type of the item to retrieve.</param>
+        /// <returns>A Task that resolves to the Item object if found; otherwise, null.</returns>
+        Task<Item?> GetItemAsync(int userId, int itemtId, string? itemType);
+
+        /// <summary>
+        /// Retrieves an item by its name within a specific parent folder for a user
+        /// </summary>
+        /// <param name="userId">The ID of the user who owns the item</param>
+        /// <param name="name">The name of the item to find</param>
+        /// <param name="parentId">The ID of the parent folder (null for root)</param>
+        /// <param name="teamspaceId">Optional teamspace ID to filter by</param>
+        /// <returns>The Item object if found, otherwise null</returns>
+        Task<Item?> GetItemByNameAsync(int userId, string name, int? parentId, int? teamspaceId = null);
+
+        /// <summary>
+        /// Retrieves a deleted item by its ID for the specified user.
+        /// Returns null if not found or not marked as deleted.
+        /// </summary>
+        /// <param name="userId">The user who owns the item.</param>
+        /// <param name="itemId">The ID of the item to retrieve.</param>
+        /// <returns>The deleted Item, or null if not found.</returns>
+        Task<Item?> GetDeletedItemAsync(int userId, int itemId);
+
+        #endregion
+
+        #region Retrieval - Multiple Items
+
         /// <summary>
         /// Retrieves all child items (files and folders) under a specified parent folder.
         /// </summary>
-        /// <param name="parentId">The ID of the parent folder to search under</param>
         /// <param name="userId">The user ID to filter items by</param>
+        /// <param name="parentId">The ID of the parent folder to search under</param>
         /// <param name="maxDepth">The maximal depth to search by</param>
-        /// <returns>A list of all child items found recursively under the parent folder</returns>
+        /// <returns>An async enumerable of all child items found recursively under the parent folder</returns>
         IAsyncEnumerable<Item> GetAllChildItemsAsync(int userId, int parentId, int maxDepth = 10000);
 
+        /// <summary>
+        /// Retrieves immediate children of a folder without recursion
+        /// </summary>
+        /// <param name="userId">The user ID to filter items by</param>
+        /// <param name="parentId">The ID of the parent folder (null for root)</param>
+        /// <param name="itemType">Optional filter by item type ("file" or "folder")</param>
+        /// <param name="includeDeleted">If true, includes soft-deleted items</param>
+        /// <returns>An async enumerable of direct child items</returns>
         IAsyncEnumerable<Item> GetDirectChildrenAsync(int userId, int? parentId, string? itemType = null, bool includeDeleted = false);
 
         /// <summary>
@@ -33,50 +78,43 @@ namespace CloudCore.Services.Interfaces
         Task<(IEnumerable<Item> Items, int TotalCount)> GetItemsAsync(int userId, int? parentId, int page, int pageSize, string? sortBy = "name", string? sortDir = "asc", bool IsTrashFolder = false, string? searchQuery = null, int? teamspaceId = null);
 
         /// <summary>
-        /// Asynchronously retrieves a single item by its ID, ensuring it belongs to the specified user.
+        /// Asynchronously retrieves multiple items by their IDs, ensuring they belong to the specified user.
         /// </summary>
-        /// <param name="userId">The ID of the user who owns the item.</param>
-        /// <param name="itemtId">The ID of the item to retrieve.</param>
-        /// <param name="itemType">The Type of the item to retrieve.</param>
-        /// <returns>A Task that resolves to the Item object if found; otherwise, null.</returns>
-        Task<Item?> GetItemAsync(int userId, int itemtId, string? itemType);
-
-
-        Task<Item?> GetItemByNameAsync(int userId, string name, int? parentId, int? teamspaceId = null);
-
-
-        /// <summary>
-        /// Retrieves a deleted item by its ID for the specified user.
-        /// Returns null if not found or not marked as deleted.
-        /// </summary>
-        /// <param name="userId">The user who owns the item.</param>
-        /// <param name="itemId">The ID of the item to retrieve.</param>
-        /// <returns>The deleted <see cref="Item"/>, or null if not found.</returns>
-        Task<Item?> GetDeletedItemAsync(int userId, int itemId);
-
-        /// <summary>
-        /// Asynchronously retrieves a IEnumerable of items by its ID, ensuring it belongs to the specified user.
-        /// </summary>
-        /// <param name="userId">The ID of the user who owns the item.</param>
+        /// <param name="userId">The ID of the user who owns the items.</param>
         /// <param name="itemsIds">The IDs of the items to retrieve.</param>
-        /// <returns>A Task that resolves to the Item object if found; otherwise, null.</returns>
+        /// <returns>An async enumerable of items matching the provided IDs.</returns>
         IAsyncEnumerable<Item> GetItemsByIdsForUserAsync(int userId, List<int> itemsIds);
 
-
         /// <summary>
-        /// Asynchronously retrieves a IEnumerable of items by its ID.
+        /// Asynchronously retrieves multiple deleted items by their IDs.
         /// </summary>
         /// <param name="itemsIds">The IDs of the items to retrieve.</param>
-        /// <returns>A Task that resolves to the Item object if found; otherwise, null.</returns>
+        /// <returns>An enumerable of deleted items matching the provided IDs.</returns>
         Task<IEnumerable<Item>> GetDeletedItemsByIdsAsync(List<int> itemsIds);
 
+        #endregion
+
+        #region Retrieval - Path Information
+
         /// <summary>
-        /// WITHOUT USER PART!!!
         /// Asynchronously constructs the full, relative path of a folder by traversing its parent hierarchy.
         /// </summary>
         /// <param name="folder">The folder item for which to build the path.</param>
         /// <returns>A Task that resolves to the relative folder path as a string (e.g., "ParentFolder/SubFolder").</returns>
+        /// <remarks>Does not include user-specific path prefix</remarks>
         Task<string> GetFolderPathAsync(Item folder);
+
+        /// <summary>
+        /// Asynchronously generates the breadcrumb path string for the specified folder item.
+        /// The method recursively retrieves the folder's parent hierarchy to build the full path.
+        /// </summary>
+        /// <param name="folder">The folder item for which to build the breadcrumb path.</param>
+        /// <returns>The breadcrumb path as a string, constructed from the root folder to the specified folder.</returns>
+        Task<string> GetBreadcrumbPathAsync(Item folder);
+
+        #endregion
+
+        #region Existence Checks
 
         /// <summary>
         /// Asynchronously checks if an active (not deleted) item exists for a user.
@@ -107,6 +145,19 @@ namespace CloudCore.Services.Interfaces
         /// <returns>A Task that resolves to true if a duplicate item exists; otherwise, false.</returns>
         Task<bool> DoesItemExistByNameAsync(string name, string itemType, int userId, int? parentId, int? excludeItemId = null, bool includeDeleted = false);
 
+        /// <summary>
+        /// Checks if a folder is a subfolder (child at any level) of another folder
+        /// </summary>
+        /// <param name="userId">The ID of the user who owns both folders</param>
+        /// <param name="parentFolderId">The potential parent folder ID</param>
+        /// <param name="childFolderId">The potential child folder ID to check</param>
+        /// <returns>True if childFolderId is a subfolder of parentFolderId at any depth, otherwise false</returns>
+        /// <remarks>Used to prevent circular folder structures (e.g., moving a folder into its own subfolder)</remarks>
+        Task<bool> IsFolderSubFolderAsync(int userId, int parentFolderId, int childFolderId);
+
+        #endregion
+
+        #region Calculations
 
         /// <summary>
         /// Recursively calculates the total size and file count of a folder and all its subfolders
@@ -122,6 +173,16 @@ namespace CloudCore.Services.Interfaces
         /// </remarks>
         Task<(long totalSize, int fileCount)> CalculateArchiveSizeAsync(int userId, int? folderId);
 
+        #endregion
+
+        #region Create/Update Operations
+
+        /// <summary>
+        /// Adds a single item in the database in a dedicated transaction, rolling back if any error occurs.
+        /// </summary>
+        /// <param name="item">The item to insert.</param>
+        Task AddItemInTranscationAsync(Item item);
+
         /// <summary>
         /// Atomically updates multiple items in the database, committing all changes in a single transaction.
         /// </summary>
@@ -129,11 +190,9 @@ namespace CloudCore.Services.Interfaces
         /// <param name="batchSize">The number of items to process in each batch within the transaction.</param>
         Task UpdateItemsInTransactionAsync(IAsyncEnumerable<Item> items, int batchSize = 500);
 
-        /// <summary>
-        /// Adds a single item in the database in a dedicated transaction, rolling back if any error occurs.
-        /// </summary>
-        /// <param name="item">The item to insert.</param>
-        Task AddItemInTranscationAsync(Item item);
+        #endregion
+
+        #region Delete Operations
 
         /// <summary>
         /// Permanently deletes the given item from the database (hard delete), using a transaction.
@@ -155,16 +214,6 @@ namespace CloudCore.Services.Interfaces
         /// <returns>The number of rows affected.</returns>
         Task<int> DeleteItemsByIdsAsync(List<int> itemIds);
 
-        // <summary>
-        /// Asynchronously generates the breadcrumb path string for the specified folder item.
-        /// The method recursively retrieves the folder's parent hierarchy to build the full path.
-        /// </summary>
-        /// <param name="folder">The folder item for which to build the breadcrumb path.</param>
-        /// <returns>
-        /// The task result contains the breadcrumb path as a string, constructed from the root folder to the specified folder.
-        /// </returns>
-        Task<string> GetBreadcrumbPathAsync(Item folder);
-
-        Task<bool> IsFolderSubFolderAsync(int userId, int parentFolderId, int childFolderId);
+        #endregion
     }
 }

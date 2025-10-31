@@ -66,19 +66,102 @@ document.querySelectorAll('.toggle-password').forEach((button) => {
     });
 });
 
-// Form submission
+const newPasswordInput = document.getElementById('newPassword');
+const confirmPasswordInput = document.getElementById('confirmPassword');
+
+if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', () => {
+        validatePassword(newPasswordInput.value);
+    });
+}
+
+if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', () => {
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        const matchHint = document.getElementById('password-match-hint');
+
+        if (confirmPassword === '' && newPassword === '') {
+            confirmPasswordInput.style.borderColor = 'var(--border-color)';
+            if (matchHint) matchHint.style.display = 'none';
+        } else if (newPassword === confirmPassword && confirmPassword !== '') {
+            confirmPasswordInput.style.borderColor = 'var(--color-green)';
+            if (matchHint) matchHint.style.display = 'none';
+        } else if (confirmPassword !== '') {
+            confirmPasswordInput.style.borderColor = 'var(--color-red)';
+            if (matchHint) matchHint.style.display = 'flex';
+        }
+    });
+}
+
+/**
+ * Validate password requirements in real-time
+ */
+function validatePassword(password) {
+    const requirements = {
+        length: password.length >= 8,
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password)
+    };
+
+    updateRequirement('req-length', requirements.length);
+    updateRequirement('req-lowercase', requirements.lowercase);
+    updateRequirement('req-number', requirements.number);
+}
+
+/**
+ * Update requirement indicator UI
+ */
+function updateRequirement(elementId, isValid) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const dot = element.querySelector('.req-dot');
+
+    if (isValid) {
+        element.classList.add('valid');
+        element.style.color = 'var(--color-green)';
+        if (dot) {
+            dot.style.background = 'var(--color-green)';
+            dot.style.boxShadow = '0 0 0 3px rgba(52, 168, 83, 0.2)';
+            dot.style.transform = 'scale(1.3)';
+        }
+    } else {
+        element.classList.remove('valid');
+        element.style.color = 'var(--text-secondary)';
+        if (dot) {
+            dot.style.background = 'var(--color-red)';
+            dot.style.boxShadow = 'none';
+            dot.style.transform = 'scale(1)';
+        }
+    }
+}
+
+// ============================================================
+// FORM SUBMISSION
+// ============================================================
+
 const resetPasswordForm = document.getElementById('resetPasswordForm');
 const resetBtn = document.getElementById('resetBtn');
 
 resetPasswordForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
+    const newPassword = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
 
-    // Validation
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
         showMessage(i18n.t('passwordTooShort'), 'error');
+        return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+        showMessage(i18n.t('passwordNeedsLowercase'), 'error');
+        return;
+    }
+
+    if (!/\d/.test(newPassword)) {
+        showMessage(i18n.t('passwordNeedsNumber'), 'error');
         return;
     }
 
@@ -89,7 +172,7 @@ resetPasswordForm.addEventListener('submit', async (e) => {
 
     try {
         resetBtn.disabled = true;
-        resetBtn.textContent = 'Resetting...';
+        resetBtn.textContent = i18n.t('resetting');
 
         await api.resetPassword(token, newPassword);
 
@@ -99,10 +182,20 @@ resetPasswordForm.addEventListener('submit', async (e) => {
         }, 2000);
     } catch (error) {
         console.error('Reset password error:', error);
-        showMessage(i18n.t('passwordResetFailed'), 'error');
+
+        const msg = error.message?.toLowerCase() || '';
+        let errorMessage = i18n.t('passwordResetFailed');
+
+        if (msg.includes('expired') || msg.includes('invalid')) {
+            errorMessage = i18n.t('invalidOrExpiredToken');
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        showMessage(errorMessage, 'error');
     } finally {
         resetBtn.disabled = false;
-        resetBtn.textContent = 'Reset Password';
+        resetBtn.textContent = i18n.t('resetPassword');
     }
 });
 
@@ -110,9 +203,9 @@ function showMessage(message, type) {
     const messageEl =
         type === 'error' ? document.getElementById('error-message') : document.getElementById('success-message');
 
-    // Hide other message
     const otherEl =
         type === 'error' ? document.getElementById('success-message') : document.getElementById('error-message');
+
     otherEl.style.display = 'none';
 
     messageEl.textContent = message;

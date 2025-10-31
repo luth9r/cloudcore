@@ -129,36 +129,94 @@ class AuthManager {
     }
 
     async handleRegister(username, email, password, confirmPassword, button) {
-        // Validate passwords match
-        if (password !== confirmPassword) {
-            this.showError(this.i18n.t('passwordsNoMatch'));
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = this.i18n.t('creatingAccount');
-        this.hideMessages();
-
-        try {
-            const data = await this.api.register(username, email, password);
-
-            console.log('🎉 Registration successful!');
-
-            this.showEmailVerificationModal();
-        } catch (error) {
-            console.error('Registration error:', error);
-
-            let errorMessage = this.i18n.t('registrationFailed');
-            if (error.message) {
-                errorMessage = error.message;
-            }
-
-            this.showError(errorMessage);
-        } finally {
-            button.disabled = false;
-            button.textContent = this.i18n.t('createAccount');
-        }
+    // ============================================================
+    // CLIENT-SIDE VALIDATION
+    // ============================================================
+    
+    // 1. Validate passwords match
+    if (password !== confirmPassword) {
+        this.showError(this.i18n.t('passwordsNoMatch'));
+        return;
     }
+
+    // 2. Validate username (5-50 characters, letters/numbers/underscore)
+    if (username.length < 5 || username.length > 50) {
+        this.showError(this.i18n.t('usernameInvalidLength'));
+        return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        this.showError(this.i18n.t('usernameInvalidCharacters'));
+        return;
+    }
+
+    // 3. Validate password requirements
+    if (password.length < 8) {
+        this.showError(this.i18n.t('passwordTooShort'));
+        return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+        this.showError(this.i18n.t('passwordNeedsLowercase'));
+        return;
+    }
+
+    if (!/\d/.test(password)) {
+        this.showError(this.i18n.t('passwordNeedsNumber'));
+        return;
+    }
+
+    // 4. Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        this.showError(this.i18n.t('emailInvalid'));
+        return;
+    }
+
+    // ============================================================
+    // ALL VALIDATIONS PASSED - PROCEED WITH API CALL
+    // ============================================================
+
+    button.disabled = true;
+    button.textContent = this.i18n.t('creatingAccount');
+    this.hideMessages();
+
+    try {
+        const data = await this.api.register(username, email, password);
+        console.log('🎉 Registration successful!');
+        this.showEmailVerificationModal();
+    } catch (error) {
+        console.error('Registration error:', error);
+
+        let errorMessage = this.i18n.t('registrationFailed');
+        const msg = error.message?.toLowerCase() || '';
+
+        if (msg.includes('already exists') || msg.includes('already taken')) {
+            errorMessage = this.i18n.t('userAlreadyExists');
+        } else if (msg.includes('invalid email') || msg.includes('email format')) {
+            errorMessage = this.i18n.t('emailInvalid');
+        } else if (msg.includes('username') && msg.includes('5-50')) {
+            errorMessage = this.i18n.t('usernameInvalidLength');
+        } else if (msg.includes('username') && (msg.includes('letters') || msg.includes('underscore'))) {
+            errorMessage = this.i18n.t('usernameInvalidCharacters');
+        } else if (msg.includes('password') && msg.includes('8 characters')) {
+            errorMessage = this.i18n.t('passwordTooShort');
+        } else if (msg.includes('lowercase')) {
+            errorMessage = this.i18n.t('passwordNeedsLowercase');
+        } else if (msg.includes('number') || msg.includes('digit')) {
+            errorMessage = this.i18n.t('passwordNeedsNumber');
+        } else if (error.errorCode === 'USER_ALREADY_EXISTS') {
+            errorMessage = this.i18n.t('userAlreadyExists');
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        this.showError(errorMessage);
+    } finally {
+        button.disabled = false;
+        button.textContent = this.i18n.t('createAccount');
+    }
+}
 
     setupThemeSwitcher() {
         const themeBtn = document.getElementById('themeBtn');
@@ -258,42 +316,124 @@ class AuthManager {
     }
 
     initializeRegisterPage() {
-        this.setupPasswordVisibilityToggles();
-        this.setupThemeSwitcher();
-        this.i18n.updateUI();
-        this.setupLanguageSwitcher();
+    this.setupPasswordVisibilityToggles();
+    this.setupThemeSwitcher();
+    this.i18n.updateUI();
+    this.setupLanguageSwitcher();
 
-        const form = document.getElementById('registerForm');
-        if (form) {
-            setTimeout(() => {
-                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
+    const form = document.getElementById('registerForm');
+    if (form) {
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
 
-        // Real-time password confirmation validation
-        document.getElementById('confirmPassword')?.addEventListener('input', function () {
+    const usernameInput = document.getElementById('username');
+if (usernameInput) {
+    usernameInput.addEventListener('input', () => {
+        this.validateUsername(usernameInput.value);
+    });
+}
+
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => {
+            this.validatePassword(passwordInput.value);
+        });
+    }
+
+    // Real-time password confirmation validation
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', function () {
             const password = document.getElementById('password').value;
             const confirmPassword = this.value;
+            const matchHint = document.getElementById('password-match-hint');
 
             if (confirmPassword && password !== confirmPassword) {
                 this.style.borderColor = '#d93025';
+                if (matchHint) matchHint.style.display = 'flex';
             } else {
                 this.style.borderColor = '#dadce0';
+                if (matchHint) matchHint.style.display = 'none';
             }
         });
-
-        document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const button = document.getElementById('registerBtn');
-
-            await this.handleRegister(username, email, password, confirmPassword, button);
-        });
     }
+
+    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const button = document.getElementById('registerBtn');
+
+        await this.handleRegister(username, email, password, confirmPassword, button);
+    });
+}
+
+/**
+ * Validate password requirements in real-time
+ */
+validatePassword(password) {
+    const requirements = {
+        length: password.length >= 8,
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password)
+    };
+
+    // Update UI for each requirement
+    this.updateRequirement('req-length', requirements.length);
+    this.updateRequirement('req-lowercase', requirements.lowercase);
+    this.updateRequirement('req-number', requirements.number);
+}
+
+validateUsername(username) {
+    const usernameHint = document.getElementById('username-hint');
+    if (!usernameHint) return;
+
+    const isValidLength = username.length >= 5 && username.length <= 50;
+    const isValidPattern = /^[a-zA-Z0-9_]*$/.test(username);
+    const isValid = isValidLength && isValidPattern && username.length > 0;
+
+    if (username.length === 0) {
+        usernameHint.style.borderLeftColor = 'var(--color-blue)';
+        usernameHint.style.color = 'var(--text-secondary)';
+        usernameHint.style.background = 'var(--bg-secondary)';
+        return;
+    }
+
+    if (isValid) {
+        usernameHint.style.borderLeftColor = 'var(--color-green)';
+        usernameHint.style.color = 'var(--color-green)';
+        usernameHint.style.background = 'rgba(52, 168, 83, 0.05)';
+    } 
+    else {
+        usernameHint.style.borderLeftColor = 'var(--color-red)';
+        usernameHint.style.color = 'var(--color-red)';
+        usernameHint.style.background = 'rgba(234, 67, 53, 0.05)';
+    }
+}
+
+
+/**
+ * Update requirement indicator UI
+ */
+updateRequirement(elementId, isValid) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const dot = element.querySelector('.req-dot');
+        if (isValid) {
+            element.classList.add('valid');
+            if (dot) dot.style.background = 'var(--color-green)';
+        } else {
+            element.classList.remove('valid');
+            if (dot) dot.style.background = 'var(--color-red)';
+        }
+    }
+}
 
     showEmailVerificationModal() {
         const modal = document.getElementById('emailVerificationModal');

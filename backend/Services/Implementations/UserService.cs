@@ -8,14 +8,14 @@ namespace CloudCore.Services.Implementations
 {
     public class UserService : IUserService
     {
-        private readonly CloudCoreDbContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<UserService> _logger;
         private readonly ITokenService _tokenService;
         private readonly IEmailSendService _emailSendService;
 
-        public UserService(CloudCoreDbContext context, ILogger<UserService> logger, IEmailSendService emailSendService, ITokenService tokenService)
+        public UserService(IUserRepository userRepository, ILogger<UserService> logger, IEmailSendService emailSendService, ITokenService tokenService)
         {
-            _context = context;
+            _userRepository = userRepository;
             _logger = logger;
             _emailSendService = emailSendService;
             _tokenService = tokenService;
@@ -29,20 +29,21 @@ namespace CloudCore.Services.Implementations
 
         public async Task<bool> ChangeUsernameAsync(int userId, string newUsername)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == newUsername))
+            var existingUser = await _userRepository.GetUserByNameAsync(newUsername);
+            if(existingUser != null)
                 return false;
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null) return false;
 
             user.Username = newUsername;
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateUserAsync(user);
             return true;
         }
 
         public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null) return false;
 
             if (!VerifyPassword(oldPassword, user.PasswordHash)) //FIXME use passwordhash
@@ -50,16 +51,16 @@ namespace CloudCore.Services.Implementations
             _logger.LogInformation("Password verified successfully");
 
             user.PasswordHash = newPassword; //FIXME use passwordhash
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateUserAsync(user);
             return true;
         }
 
         public async Task<bool> SendEmailVerificationAsync(int userId, string newEmail)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == newEmail))
+            if (await _userRepository.CheckUserExistsAsync(newEmail))
                 return false;
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
                 return false;
 
@@ -112,7 +113,7 @@ namespace CloudCore.Services.Implementations
                 return false;
             }
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
             {
                 _logger.LogWarning("User with ID {UserId} not found during email confirmation", userId);
@@ -125,7 +126,7 @@ namespace CloudCore.Services.Implementations
             user.Email = newEmailClaim.Value;
             user.IsEmailVerified = true;
 
-            var changes = await _context.SaveChangesAsync();
+            var changes = await _userRepository.UpdateUserAsync(user);
             _logger.LogInformation("SaveChanges returned: {AffectedRows} affected rows", changes);
 
             return true;
@@ -133,7 +134,7 @@ namespace CloudCore.Services.Implementations
 
         public async Task<bool> UpgradePlanAsync(int userId, SubscriptionPlan subscriptionPlan)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
 
             if (user == null)
             {
@@ -161,7 +162,7 @@ namespace CloudCore.Services.Implementations
             }
 
             user.SubscriptionPlan = ConvertToDbValue(subscriptionPlan);
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateUserAsync(user);
 
             _logger.LogInformation("User ID {UserId} upgraded from {OldPlan} to {NewPlan}", userId, currentPlan, subscriptionPlan);
             return true;

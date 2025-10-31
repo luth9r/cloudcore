@@ -16,15 +16,15 @@ namespace CloudCore.Services.Implementations;
 
 public class AuthService : IAuthService
 {
-    private readonly CloudCoreDbContext _context;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<AuthService> _logger;
     private readonly ITokenService _tokenService;
     private readonly IEmailSendService _emailSendService;
 
 
-    public AuthService(CloudCoreDbContext context, IEmailSendService emailSendService, ILogger<AuthService> logger, ITokenService tokenService)
+    public AuthService(IUserRepository userRepository, IEmailSendService emailSendService, ILogger<AuthService> logger, ITokenService tokenService)
     {
-        _context = context;
+        _userRepository = userRepository;
         _emailSendService = emailSendService;
         _logger = logger;
         _tokenService = tokenService;
@@ -32,9 +32,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == request.Username);
+        var user = await _userRepository.GetUserByNameAsync(request.Username);
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !VerifyPassword(request.Password, user.PasswordHash) || user.IsEmailVerified == false)
             return null;
@@ -53,7 +51,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         // Check if user already exists
-        if (await _context.Users.AnyAsync(u => u.Username == request.Username || u.Email == request.Email))
+        if (await _userRepository.CheckUserExistsAsync(request.Username, request.Email))
             return null;
 
         var user = new User
@@ -64,8 +62,7 @@ public class AuthService : IAuthService
             IsEmailVerified = false
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await _userRepository.AddUserAsync(user);
 
         try
         {
@@ -113,12 +110,12 @@ public class AuthService : IAuthService
         if (userId == null)
             return null;
 
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _userRepository.GetUserByIdAsync(userId.Value);
         if (user == null)
             return null;
 
         user.IsEmailVerified = true;
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateUserAsync(user);
 
         return _tokenService.GenerateJwtToken(user);
     }
@@ -127,8 +124,7 @@ public class AuthService : IAuthService
     {
         _logger.LogInformation($"Password reset requested for email: {email}");
 
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _userRepository.GetUserByEmailAsync(email);
 
         if (user == null)
         {
@@ -169,7 +165,7 @@ public class AuthService : IAuthService
             return false;
         }
 
-        var user = await _context.Users.FindAsync(userId.Value);
+        var user = await _userRepository.GetUserByIdAsync(userId.Value);
 
         if (user == null)
         {
@@ -179,7 +175,7 @@ public class AuthService : IAuthService
 
         user.PasswordHash = HashPassword(newPassword);
 
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateUserAsync(user);
 
         _logger.LogInformation($"Password reset successful for user: {user.Username}");
         return true;

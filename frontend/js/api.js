@@ -100,9 +100,9 @@ export class ApiClient {
     }
 
     async confirmEmailChange(token) {
-        const response = await fetch(`${this.baseUrl}/auth/confirm-email-change`, {
+        const response = await fetch(`${this.baseUrl}/user/confirm-email-change`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.getHeaders(false),
             body: JSON.stringify({ token })
         });
 

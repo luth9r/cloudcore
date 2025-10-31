@@ -65,6 +65,10 @@ export const translations = {
         folderNameRequired: 'Folder name is required',
         folderNameConflict: 'A folder with this name already exists',
         parentFolderNotFound: 'Parent folder not found',
+        moveItem: '1 item',
+        moveItems: '{count} items',
+        movedSuccessToFolder: 'Moved {items} to {folder}',
+        movedPartialItems: 'Moved {succeeded} items. Failed: {failed}',
 
         // File Operations
         downloadFile: 'Download',
@@ -188,7 +192,6 @@ export const translations = {
         // ═══════════════════════════════════════════════════════════════
         selectionCount: '{count} selected',
         selectedAllItems: 'Selected {count} items',
-        moveDialogNotImplemented: 'Move dialog not implemented yet. Use drag & drop instead.',
 
         // ═══════════════════════════════════════════════════════════════
         // EMPTY STATES
@@ -232,7 +235,22 @@ export const translations = {
         alreadyAccount: 'Already have an account?',
         welcomeBack: 'Welcome back, {username}!',
         accountCreated: 'Account created! Welcome, {username}!',
-        usernameHint: '3-50 latin letters or numbers',
+        usernameHint: '5–50 latin letters, numbers or underscore.',
+        passwordReqLength: 'At least 8 characters',
+        passwordReqUppercase: 'One uppercase letter',
+        passwordReqLowercase: 'One lowercase letter',
+        passwordReqNumber: 'One number',
+        passwordsDoNotMatch: 'Passwords do not match',
+        passwordPlaceholder: 'Your password',
+        usernameInvalidLength: 'Username must be 5-50 characters',
+        usernameInvalidCharacters: 'Username can only contain letters, numbers and underscore',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsLowercase: 'Password must contain at least one lowercase letter',
+        passwordNeedsNumber: 'Password must contain at least one number',
+        emailInvalid: 'Please enter a valid email address',
+        pleaseEnterCredentials: 'Please enter username and password',
+        usernameInvalid: 'Username is too short',
+        passwordInvalid: 'Password is too short',
         passwordHint: 'At least 6 characters. Use a strong, unique password',
         emailVerificationRequired: 'Email verification required',
         checkYourEmail: 'Please check your email and follow the link to activate your account.',
@@ -240,6 +258,7 @@ export const translations = {
         checkingVerification: 'Checking verification...',
         verificationSuccess: 'Your email has been successfully verified! You can now log in.',
         emailChangeSuccess: 'Email successfully changed',
+        emailChangeFailed: 'Email change failed.',
         vereficationTokenMissing: 'Verification token missing.',
         verificationFailed: 'Email verification failed or token expired.',
         goToLogin: 'Go to Login',
@@ -265,6 +284,7 @@ export const translations = {
         // ═══════════════════════════════════════════════════════════════
         // VALIDATION ERRORS
         // ═══════════════════════════════════════════════════════════════
+        userAlreadyExists: 'Username or email already exists',
         invalidCharacters: 'Invalid characters: < > : " / \\ | ? *',
         nameTooLong: 'Name is too long (max 250 characters)',
         invalidName: 'Invalid name provided',
@@ -407,7 +427,6 @@ export const translations = {
         newEmail: 'New Email Address',
         emailHint: 'Enter your new email address',
         newUsername: 'New Username',
-        usernameHint: 'Choose a unique username (3-20 characters)',
         currentPassword: 'Current Password',
         newPassword: 'New Password',
         confirmPassword: 'Confirm Password',
@@ -425,7 +444,7 @@ export const translations = {
         passwordChanged: 'Password changed successfully',
         failedToChangePassword: 'Failed to change password',
         signedOut: 'Signed out successfully',
-        usernamePlaceholder: 'username',
+        usernamePlaceholder: 'Username',
         currentPasswordPlaceholder: 'Enter current password',
         newPasswordPlaceholder: 'Enter new password',
         confirmPasswordPlaceholder: 'Confirm new password',
@@ -457,6 +476,15 @@ export const translations = {
         downgradeNotAllowed: 'Downgrade is not allowed',
         planUpgraded: 'Plan upgraded successfully!',
         failedToUpgradePlan: 'Failed to upgrade plan',
+        resetPassword: 'Reset Password',
+        resetPasswordDesc: 'Forgot your password? Send reset link to your email',
+        resetPasswordConfirm: 'A password reset link will be sent to your registered email address:',
+        resetPasswordHint: 'Check your inbox after clicking the button below',
+        sendResetLink: 'Send Reset Link',
+        sending: 'Sending...',
+        resetLinkSent: 'Reset link sent! Check your email.',
+        resetLinkFailed: 'Failed to send reset link',
+        userNotFound: 'User not found',
     },
 
     uk: {
@@ -525,6 +553,12 @@ export const translations = {
         folderNameRequired: 'Введіть назву папки',
         folderNameConflict: 'Папка з такою назвою вже існує',
         parentFolderNotFound: 'Батьківська папка не знайдена',
+        moveItem: '1 елемент',
+        moveItems: '{count} елементів',
+        movedSuccessToFolder: 'Переміщено {items} до {folder}',
+        movedPartialItems: 'Переміщено {succeeded} елементів. Помилка: {failed}',
+        
+
 
         // File Operations
         downloadFile: 'Завантажити',
@@ -689,12 +723,27 @@ export const translations = {
         alreadyAccount: 'Вже є акаунт?',
         welcomeBack: 'З поверненням, {username}!',
         accountCreated: 'Акаунт створено! Вітаємо, {username}!',
-        usernameHint: '3-50 латинських букв або цифр',
-        passwordHint: 'Щонайменше 6 символів. Використовуйте надійний унікальний пароль',
+        usernameHint: '5–50 латинських літер, цифр або підкреслення.',
+        passwordReqLength: 'Щонайменше 8 символів',
+        passwordReqUppercase: 'Одна велика літера',
+        passwordReqLowercase: 'Одна мала літера',
+        passwordReqNumber: 'Одна цифра',
+        passwordsDoNotMatch: 'Паролі не співпадають',
+        passwordPlaceholder: 'Ваш пароль',
+        usernameInvalidLength: 'Ім\'я користувача повинно бути від 5 до 50 символів',
+        usernameInvalidCharacters: 'Ім\'я користувача може містити лише літери, цифри та підкреслення',
+        passwordTooShort: 'Пароль повинен містити щонайменше 8 символів',
+        passwordNeedsLowercase: 'Пароль повинен містити принаймні одну малу літеру',
+        passwordNeedsNumber: 'Пароль повинен містити принаймні одну цифру',
+        emailInvalid: 'Будь ласка, введіть правильну адресу електронної пошти',
+        pleaseEnterCredentials: 'Будь ласка, введіть ім\'я користувача та пароль',
+        usernameInvalid: 'Ім\'я користувача занадто коротке',
+        passwordInvalid: 'Пароль занадто короткий',
         emailVerificationRequired: 'Потрібна перевірка електронної пошти',
         checkYourEmail: 'Будь ласка, перевірте свою пошту та перейдіть за посиланням для активації вашого акаунту.',
         emailVerification: 'Перевірка електронної пошти',
         emailChangeSuccess: 'Електронну пошту успішно змінено',
+        emailChangeFailed: 'Зміна електронної пошти не вдалася.',
         checkingVerification: 'Перевірка...',
         verificationSuccess: 'Ваша електронна пошта успішно підтверджена! Тепер ви можете увійти.',
         vereficationTokenMissing: 'Відсутній токен підтвердження.',
@@ -722,6 +771,7 @@ export const translations = {
         // ═══════════════════════════════════════════════════════════════
         // VALIDATION ERRORS
         // ═══════════════════════════════════════════════════════════════
+        userAlreadyExists: 'Ім\'я користувача або email вже існують',
         invalidCharacters: 'Недопустимі символи: < > : " / \\ | ? *',
         nameTooLong: 'Назва занадто довга (максимум 250 символів)',
         invalidName: 'Вказано неправильну назву',
@@ -864,7 +914,6 @@ export const translations = {
         newEmail: 'Нова електронна адреса',
         emailHint: 'Введіть вашу нову електронну адресу',
         newUsername: 'Нове ім\'я користувача',
-        usernameHint: 'Оберіть унікальне ім\'я користувача (3-20 символів)',
         currentPassword: 'Поточний пароль',
         newPassword: 'Новий пароль',
         confirmPassword: 'Підтвердіть пароль',
@@ -882,7 +931,7 @@ export const translations = {
         passwordChanged: 'Пароль успішно змінено',
         failedToChangePassword: 'Не вдалося змінити пароль',
         signedOut: 'Ви успішно вийшли',
-        usernamePlaceholder: 'ім\'я користувача',
+        usernamePlaceholder: 'Ім\'я користувача',
         currentPasswordPlaceholder: 'Введіть поточний пароль',
         newPasswordPlaceholder: 'Введіть новий пароль',
         confirmPasswordPlaceholder: 'Підтвердіть новий пароль',
@@ -914,6 +963,15 @@ export const translations = {
         downgradeNotAllowed: 'Даунгрейд заборонено',
         planUpgraded: 'План успішно оновлено!',
         failedToUpgradePlan: 'Не вдалося оновити план',
+        resetPassword: 'Скинути пароль',
+        resetPasswordDesc: 'Забули пароль? Надішліть посилання для скидання на email',
+        resetPasswordConfirm: 'Посилання для скидання пароля буде надіслано на вашу зареєстровану електронну адресу:',
+        resetPasswordHint: 'Перевірте свою пошту після натискання кнопки нижче',
+        sendResetLink: 'Надіслати посилання',
+        sending: 'Надсилання...',
+        resetLinkSent: 'Посилання надіслано! Перевірте свою пошту.',
+        resetLinkFailed: 'Не вдалося надіслати посилання',
+        userNotFound: 'Користувача не знайдено',
     }
 };
 

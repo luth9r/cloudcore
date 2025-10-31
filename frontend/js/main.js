@@ -942,10 +942,24 @@ class CloudCoreDrive {
             });
 
             if (result.failed.length === 0) {
-                const itemsText = result.succeeded.length === 1 ? '1 item' : `${result.succeeded.length} items`;
-                this.notifications.success(`Moved ${itemsText} to ${targetItem.name}`);
+                const count = result.succeeded.length;
+                const itemsText = count === 1 
+                    ? this.i18n.t('moveItem') 
+                    : this.i18n.t('moveItems', { count });
+                
+                this.notifications.success(
+                    this.i18n.t('movedSuccessToFolder', { 
+                        items: itemsText, 
+                        folder: targetItem.name 
+                    })
+                );
             } else {
-                this.notifications.warning(`Moved ${result.succeeded.length} items. Failed: ${result.failed.length}`);
+                this.notifications.warning(
+                    this.i18n.t('movedPartialItems', {
+                        succeeded: result.succeeded.length,
+                        failed: result.failed.length
+                    })
+                );
             }
 
             this.selectedItems.clear();

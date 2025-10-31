@@ -1993,6 +1993,77 @@ body {
     }
 }
 
+.password-requirements {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border-left: 3px solid var(--color-blue);
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.requirement {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    line-height: 1.3;
+}
+
+.req-dot {
+    width: 6px;
+    height: 6px;
+    min-width: 6px;
+    min-height: 6px;
+    border-radius: 50%;
+    background: var(--color-red);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.requirement.valid {
+    color: var(--color-green);
+}
+
+.requirement.valid .req-dot {
+    background: var(--color-green);
+    box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.2);
+    transform: scale(1.3);
+}
+
+/* Password match hint */
+.password-match-hint {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: rgba(234, 67, 53, 0.1);
+    border-left: 3px solid var(--color-red);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--color-red);
+    transition: all 0.3s ease;
+}
+
+.password-match-hint .material-symbols-outlined {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Dark theme support */
+[data-theme='dark'] .requirement.valid .req-dot {
+    box-shadow: 0 0 0 3px rgba(129, 201, 149, 0.2);
+}
+
 /* Password Wrapper */
 .password-wrapper {
     position: relative;
@@ -2350,3 +2421,4 @@ body {
 [data-theme='dark'] .detail-label .material-symbols-outlined {
     color: var(--text-secondary);
 }
+

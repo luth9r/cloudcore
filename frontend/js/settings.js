@@ -578,6 +578,14 @@ class SettingsManager {
             });
         }
 
+        const resetPasswordBtn = document.querySelector('[data-modal="modalResetPassword"]');
+        if (resetPasswordBtn) {
+            resetPasswordBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleResetPassword();
+            });
+        }
+
         // Delete Account button
         const deleteBtn = document.querySelector('[data-modal="modalDelete"]');
         if (deleteBtn) {
@@ -685,7 +693,6 @@ class SettingsManager {
             planPriceValue.textContent = `${price}/${this.i18n.t('perMonth') || 'month'}`;
         }
 
-        // ОБНОВЛЕНО: Добавляем Material Icons в список преимуществ
         if (benefitsList) {
             benefitsList.innerHTML = targetPlanData.benefits
                 .map(
@@ -984,67 +991,190 @@ class SettingsManager {
     /**
      * Handle Change Password
      */
-    async handleChangePassword() {
-        this.openModal('modalPassword');
+async handleChangePassword() {
+    this.openModal('modalPassword');
 
-        const modal = document.getElementById('modalPassword');
-        const saveBtn = modal.querySelector('[data-action="save"]');
-        const currentPasswordInput = document.getElementById('currentPassword');
-        const newPasswordInput = document.getElementById('newPassword');
-        const confirmPasswordInput = document.getElementById('confirmNewPassword');
+    const modal = document.getElementById('modalPassword');
+    const saveBtn = modal.querySelector('[data-action="save"]');
+    const currentPasswordInput = document.getElementById('currentPassword');
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmNewPassword');
 
-        // Remove old listeners
-        const newSaveBtn = saveBtn.cloneNode(true);
-        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', () => {
+            this.validateNewPassword(newPasswordInput.value);
+        });
+    }
 
-        newSaveBtn.addEventListener('click', async () => {
-            const currentPassword = currentPasswordInput.value;
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', () => {
             const newPassword = newPasswordInput.value;
             const confirmPassword = confirmPasswordInput.value;
+            const matchHint = document.getElementById('confirm-password-match-hint');
 
-            if (!currentPassword || !newPassword || !confirmPassword) {
-                this.notifications.error(this.i18n.t('allFieldsRequired'));
-                return;
+            if (confirmPassword === '' && newPassword === '') {
+                confirmPasswordInput.style.borderColor = 'var(--border-color)';
+                if (matchHint) matchHint.style.display = 'none';
+            } else if (newPassword === confirmPassword && confirmPassword !== '') {
+                confirmPasswordInput.style.borderColor = 'var(--color-green)';
+                if (matchHint) matchHint.style.display = 'none';
+            } else if (confirmPassword !== '') {
+                confirmPasswordInput.style.borderColor = 'var(--color-red)';
+                if (matchHint) matchHint.style.display = 'flex';
             }
+        });
+    }
 
-            if (newPassword.length < 6) {
-                this.notifications.error(this.i18n.t('passwordTooShort'));
-                return;
+
+    // Remove old listeners
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+
+    newSaveBtn.addEventListener('click', async () => {
+        const currentPassword = currentPasswordInput.value;
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            this.notifications.error(this.i18n.t('allFieldsRequired'));
+            return;
+        }
+
+
+        if (newPassword.length < 8) {
+            this.notifications.error(this.i18n.t('passwordTooShort'));
+            return;
+        }
+
+        if (!/[a-z]/.test(newPassword)) {
+            this.notifications.error(this.i18n.t('passwordNeedsLowercase'));
+            return;
+        }
+
+        if (!/\d/.test(newPassword)) {
+            this.notifications.error(this.i18n.t('passwordNeedsNumber'));
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            this.notifications.error(this.i18n.t('passwordsDoNotMatch'));
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            this.notifications.error(this.i18n.t('samePassword'));
+            return;
+        }
+
+        try {
+            // Disable button during request
+            newSaveBtn.disabled = true;
+            newSaveBtn.textContent = this.i18n.t('processing');
+
+            await this.api.changePassword(this.currentUserId, currentPassword, newPassword, confirmPassword);
+
+            this.notifications.success(this.i18n.t('passwordChanged'));
+            this.closeAllModals();
+
+            setTimeout(() => this.handleLogout(), 2000);
+        } catch (error) {
+            console.error('Error changing password:', error);
+            if (error.errorCode === 'INVALID_PASSWORD') {
+                this.notifications.error(this.i18n.t('invalidCurrentPassword'));
+            } else {
+                this.notifications.error(this.i18n.t('failedToChangePassword'));
             }
+        } finally {
+            newSaveBtn.disabled = false;
+            newSaveBtn.innerHTML = `<span data-i18n="save">${this.i18n.t('save')}</span>`;
+        }
+    });
+}
 
-            if (newPassword !== confirmPassword) {
-                this.notifications.error(this.i18n.t('passwordsDoNotMatch'));
-                return;
+    validateNewPassword(password) {
+        const requirements = {
+            length: password.length >= 8,
+            lowercase: /[a-z]/.test(password),
+            number: /\d/.test(password)
+        };
+
+        this.updatePasswordRequirement('new-req-length', requirements.length);
+        this.updatePasswordRequirement('new-req-lowercase', requirements.lowercase);
+        this.updatePasswordRequirement('new-req-number', requirements.number);
+    }
+
+    /**
+     * Update password requirement indicator UI (red/green)
+     */
+    updatePasswordRequirement(elementId, isValid) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        const dot = element.querySelector('.req-dot');
+
+        if (isValid) {
+            element.classList.add('valid');
+            element.style.color = 'var(--color-green)';
+            if (dot) {
+                dot.style.background = 'var(--color-green)';
+                dot.style.boxShadow = '0 0 0 3px rgba(52, 168, 83, 0.2)';
+                dot.style.transform = 'scale(1.3)';
             }
+        } else {
+            element.classList.remove('valid');
+            element.style.color = 'var(--text-secondary)';
+            if (dot) {
+                dot.style.background = 'var(--color-red)';
+                dot.style.boxShadow = 'none';
+                dot.style.transform = 'scale(1)';
+            }
+        }
+    }
 
-            if (currentPassword === newPassword) {
-                this.notifications.error(this.i18n.t('samePassword'));
+    async handleResetPassword() {
+        const emailDisplay = document.getElementById('currentUserEmail');
+        if (emailDisplay && this.currentUser) {
+            emailDisplay.textContent = this.currentUser.email;
+        }
+
+        this.openModal('modalResetPassword');
+
+        const modal = document.getElementById('modalResetPassword');
+        const sendBtn = modal.querySelector('[data-action="send-reset"]');
+
+        // Remove old listeners
+        const newSendBtn = sendBtn.cloneNode(true);
+        sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+
+        newSendBtn.addEventListener('click', async () => {
+            if (!this.currentUser || !this.currentUser.email) {
+                this.notifications.error(this.i18n.t('userNotFound'));
                 return;
             }
 
             try {
                 // Disable button during request
-                newSaveBtn.disabled = true;
-                newSaveBtn.textContent = this.i18n.t('processing') || 'Processing...';
+                newSendBtn.disabled = true;
+                newSendBtn.innerHTML = `
+                <span class="material-symbols-outlined">hourglass_empty</span>
+                <span>${this.i18n.t('sending')}</span>
+            `;
 
-                await this.api.changePassword(this.currentUserId, currentPassword, newPassword, confirmPassword);
+                const response = await this.api.forgotPassword(this.currentUser.email);
 
-                this.notifications.success(this.i18n.t('passwordChanged'));
+                this.notifications.success(this.i18n.t('resetLinkSent'));
                 this.closeAllModals();
-
-                // Optional: Force logout after password change for security
-                // setTimeout(() => this.handleLogout(), 2000);
             } catch (error) {
-                console.error('Error changing password:', error);
-
-                if (error.errorCode === 'INVALID_PASSWORD') {
-                    this.notifications.error(this.i18n.t('invalidCurrentPassword'));
-                } else {
-                    this.notifications.error(this.i18n.t('failedToChangePassword'));
-                }
+                console.error('Error sending reset link:', error);
+                this.notifications.error(this.i18n.t('resetLinkFailed'));
             } finally {
-                newSaveBtn.disabled = false;
-                newSaveBtn.innerHTML = `<span data-i18n="save">${this.i18n.t('save')}</span>`;
+                newSendBtn.disabled = false;
+                newSendBtn.innerHTML = `
+                <span class="material-symbols-outlined">forward_to_inbox</span>
+                <span data-i18n="sendResetLink">${this.i18n.t('sendResetLink')}</span>
+            `;
             }
         });
     }

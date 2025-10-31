@@ -1,7 +1,11 @@
-﻿namespace CloudCore.Contracts.Requests
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CloudCore.Contracts.Requests
 {
-    public class TokenRequest
+    public record TokenRequest
     {
-        public string Token { get; set; }
+        [Required(ErrorMessage = "Token is required")]
+        [MinLength(1, ErrorMessage = "Token cannot be empty")]
+        public string Token { get; init; } = null!;
     }
 }

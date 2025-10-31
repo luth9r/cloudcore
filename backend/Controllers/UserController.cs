@@ -26,11 +26,6 @@ public class UserController : ControllerBase
     [HttpPost("{userId}/change-username")]
     public async Task<ActionResult> ChangeUsername(int userId, [FromBody] ChangeUsernameRequest request)
     {
-        var tokenUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (tokenUserId != userId)
-        {
-            return Forbid();
-        }
         var success = await _userService.ChangeUsernameAsync(userId, request.NewUsername);
         if (!success)
             return BadRequest(ApiResponse.Error("Username already taken", ErrorCodes.USERNAME_EXISTS));
@@ -41,11 +36,6 @@ public class UserController : ControllerBase
     [HttpPost("{userId}/change-password")]
     public async Task<IActionResult> ChangePassword(int userId, [FromBody] ChangePasswordRequest request)
     {
-        var tokenUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (tokenUserId != userId)
-        {
-            return Forbid();
-        }
         var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
         if (!success)
             return BadRequest(ApiResponse.Error("Invalid current password", "INVALID_PASSWORD"));
@@ -57,12 +47,6 @@ public class UserController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
-        var tokenUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (tokenUserId != userId)
-        {
-            return Forbid();
-        }
 
         _logger.LogInformation("RequestEmailChange called for user {UserId} with email {Email}", userId, request.NewEmail);
 
@@ -98,11 +82,7 @@ public class UserController : ControllerBase
             return BadRequest(ApiResponse.Error("Invalid subscription plan value"));
         }
 
-        var tokenUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (tokenUserId != userId)
-            return Forbid();
-
-        var success = await _userService.UpgradePlanAsync(userId, upgradePlanRequest.NewPlan.Value);
+        var success = await _userService.UpgradePlanAsync(userId, upgradePlanRequest.NewPlan);
         if (!success)
             return BadRequest(ApiResponse.Error("Error upgrading plan"));
         return Ok(ApiResponse.Ok("Plan upgraded successfully"));

@@ -92,6 +92,7 @@ namespace CloudCore
                 builder.Services.AddScoped<IItemApplication, ItemApplication>();
                 builder.Services.AddScoped<IItemRepository, DbRepository>();
                 builder.Services.AddScoped<ISubscriptionService, DbRepository>();
+                builder.Services.AddScoped<IUserRepository, DbRepository>();
                 builder.Services.AddScoped<ITrashCleanupService, TrashCleanupService>();
                 builder.Services.AddScoped<IItemManagerService, ItemManagerService>();
                 builder.Services.AddScoped<IStorageCalculationService, StorageCalculationService>();

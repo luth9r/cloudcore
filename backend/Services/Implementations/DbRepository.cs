@@ -12,7 +12,7 @@ using Sprache;
 
 namespace CloudCore.Services.Implementations
 {
-    public class DbRepository : IItemRepository, ISubscriptionService
+    public class DbRepository : IItemRepository, ISubscriptionService, IUserRepository
     {
         private readonly IDbContextFactory<CloudCoreDbContext> _dbContextFactory;
         private readonly ILogger<DbRepository> _logger;
@@ -677,6 +677,63 @@ namespace CloudCore.Services.Implementations
             return user.TeamspacesOwned < limits.MaxTeamspaces;
         }
 
+        public async Task<User?> GetUserByIdAsync(int id)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
 
+            return await context.Users
+                .FindAsync(id);
+        }
+
+        public async Task<User?> GetUserByNameAsync(string username)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            return await context.Users
+                  .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            return await context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<bool> CheckUserExistsAsync(string username, string email)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            return await context.Users
+                .AnyAsync(u => u.Username == username || u.Email == email);
+        }
+
+        public async Task<bool> CheckUserExistsAsync(string email)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            return await context.Users
+                .AnyAsync(u => u.Email == email);
+        }
+
+        public async Task AddUserAsync(User user)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            await context.Users.AddAsync(user);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task<bool> UpdateUserAsync(User user)
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+
+            context.Users.Attach(user);
+            context.Entry(user).State = EntityState.Modified;
+
+            await context.SaveChangesAsync();
+            return true;
+        }
     }
 }

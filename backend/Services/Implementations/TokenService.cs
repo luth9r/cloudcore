@@ -11,12 +11,12 @@ namespace CloudCore.Services.Implementations
 {
     public class TokenService : ITokenService
     {
-        private readonly CloudCoreDbContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<TokenService> _logger;
         private readonly JwtSettings _jwtSettings;
-        public TokenService(CloudCoreDbContext context, ILogger<TokenService> logger, JwtSettings jwtSettings)
+        public TokenService(IUserRepository userRepository, ILogger<TokenService> logger, JwtSettings jwtSettings)
         {
-            _context = context;
+            _userRepository = userRepository;
             _logger = logger;
             _jwtSettings = jwtSettings;
         }
@@ -124,12 +124,12 @@ namespace CloudCore.Services.Implementations
                 if (!int.TryParse(userIdClaim.Value, out int userId))
                     return false;
 
-                var user = await _context.Users.FindAsync(userId);
+                var user = await _userRepository.GetUserByIdAsync(userId);
                 if (user == null)
                     return false;
 
                 user.IsEmailVerified = true;
-                await _context.SaveChangesAsync();
+                await _userRepository.UpdateUserAsync(user);
 
                 return true;
             }
@@ -265,7 +265,7 @@ namespace CloudCore.Services.Implementations
                     return null;
                 }
 
-                var user = await _context.Users.FindAsync(userId);
+                var user = await _userRepository.GetUserByIdAsync(userId);
                 if (user == null)
                 {
                     _logger.LogWarning($"User not found for ID: {userId}");

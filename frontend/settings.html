@@ -102,6 +102,20 @@
                         <span class="material-symbols-outlined">visibility_off</span>
                     </button>
                 </div>
+                <div class="password-requirements" id="new-password-hints">
+                    <div class="requirement" id="new-req-length">
+                        <span class="req-dot"></span>
+                        <span data-i18n="passwordReqLength">At least 8 characters</span>
+                    </div>
+                    <div class="requirement" id="new-req-lowercase">
+                        <span class="req-dot"></span>
+                        <span data-i18n="passwordReqLowercase">One lowercase letter</span>
+                    </div>
+                    <div class="requirement" id="new-req-number">
+                        <span class="req-dot"></span>
+                        <span data-i18n="passwordReqNumber">One number</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Confirm New Password -->
@@ -116,9 +130,11 @@
                         <span class="material-symbols-outlined">visibility_off</span>
                     </button>
                 </div>
+                <div class="password-match-hint" id="confirm-password-match-hint" style="display: none;">
+                    <span class="material-symbols-outlined">error</span>
+                    <span data-i18n="passwordsNoMatch">Passwords do not match</span>
+                </div>
             </div>
-
-            <p class="rename-hint" data-i18n="passwordHint">Password must be at least 8 characters long</p>
         </div>
         <div class="modal-footer">
             <button class="modal-btn modal-btn-secondary" data-action="cancel">
@@ -190,6 +206,44 @@
         </div>
     </div>
 
+
+    <div id="modalResetPassword" class="modal">
+        <div class="modal-header">
+            <h3 data-i18n="resetPassword">Reset Password</h3>
+            <button class="modal-close" aria-label="Close">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 16px;">
+                <span class="material-symbols-outlined"
+                    style="font-size: 64px; color: var(--color-primary);">lock_reset</span>
+            </div>
+
+            <p data-i18n="resetPasswordConfirm" style="text-align: center; margin-bottom: 16px;">
+                A password reset link will be sent to your registered email address:
+            </p>
+
+            <div
+                style="background: var(--color-secondary); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
+                <strong id="currentUserEmail"
+                    style="color: var(--color-primary); font-size: 16px;">user@example.com</strong>
+            </div>
+
+            <p class="rename-hint" data-i18n="resetPasswordHint" style="margin-top: 8px; text-align: center;">
+                Check your inbox after clicking the button below
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-secondary" data-action="cancel">
+                <span data-i18n="cancel">Cancel</span>
+            </button>
+            <button class="modal-btn modal-btn-primary" data-action="send-reset">
+                <span class="material-symbols-outlined">forward_to_inbox</span>
+                <span data-i18n="sendResetLink">Send Reset Link</span>
+            </button>
+        </div>
+    </div>
 
 
     <!-- Delete Account Modal - Step 1 (Warning) -->
@@ -550,6 +604,27 @@
                         <button type="button" class="security-btn modal-trigger" data-modal="modalPassword">
                             <span data-i18n="change">Change</span>
                             <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reset Password (NEW) -->
+                <div class="security-card">
+                    <div class="security-card-content">
+                        <div class="security-icon">
+                            <span class="material-symbols-outlined">lock_reset</span>
+                        </div>
+                        <div class="security-info">
+                            <h3 class="security-title" data-i18n="resetPassword">Reset Password</h3>
+                            <p class="security-description" data-i18n="resetPasswordDesc">
+                                Forgot your password? Send reset link to your email
+                            </p>
+                        </div>
+                    </div>
+                    <div class="security-action">
+                        <button type="button" class="security-btn modal-trigger" data-modal="modalResetPassword">
+                            <span data-i18n="sendResetLink">Send Reset Link</span>
+                            <span class="material-symbols-outlined">forward_to_inbox</span>
                         </button>
                     </div>
                 </div>

@@ -886,7 +886,7 @@ body {
     gap: 16px;
     transition: all 0.2s ease;
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: 10px;
     position: relative;
     font-weight: 400;
 }
