@@ -16,12 +16,12 @@ namespace CloudCore.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<long> GetUserTotalStorageAsync(int userId)
+        public async Task<long> GetUserTotalStorageAsync(int userId, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Calculating total storage for user {UserId}", userId);
 
             // Calculate root-level storage (parentId = null gets everything)
-            var (totalSize, fileCount) = await _itemRepository.CalculateArchiveSizeAsync(userId, null);
+            var (totalSize, fileCount) = await _itemRepository.CalculateArchiveSizeAsync(userId, null, cancellationToken);
 
             _logger.LogInformation(
                 "User {UserId} storage: {Size} bytes across {FileCount} files",
@@ -30,18 +30,18 @@ namespace CloudCore.Services.Implementations
             return totalSize;
         }
 
-        public async Task<(long totalSize, int fileCount)> CalculateFolderSizeAsync(int userId, int? folderId)
+        public async Task<(long totalSize, int fileCount)> CalculateFolderSizeAsync(int userId, int? folderId, CancellationToken cancellationToken)
         {
             _logger.LogInformation(
                 "Calculating folder size for user {UserId}, folder {FolderId}",
                 userId, folderId);
 
-            return await _itemRepository.CalculateArchiveSizeAsync(userId, folderId);
+            return await _itemRepository.CalculateArchiveSizeAsync(userId, folderId, cancellationToken);
         }
 
         public async Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(
             int userId,
-            IAsyncEnumerable<Item> items)
+            IAsyncEnumerable<Item> items, CancellationToken cancellationToken)
         {
 
             long totalSize = 0;
@@ -59,7 +59,7 @@ namespace CloudCore.Services.Implementations
                 }
                 else if (item.Type == "folder")
                 {
-                    var (folderSize, folderFileCount) = await _itemRepository.CalculateArchiveSizeAsync(userId, item.Id);
+                    var (folderSize, folderFileCount) = await _itemRepository.CalculateArchiveSizeAsync(userId, item.Id, cancellationToken);
                     totalSize += folderSize;
                     fileCount += folderFileCount;
                 }

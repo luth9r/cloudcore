@@ -41,7 +41,7 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="token">Email verification JWT token</param>
         /// <returns>True if token is valid and email is successfully verified, false otherwise</returns>
-        Task<bool> VerifyEmailTokenAsync(string token);
+        Task<bool> VerifyEmailTokenAsync(string token, CancellationToken cancellationToken);
 
         #endregion
 
@@ -59,7 +59,7 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="token">Password reset JWT token</param>
         /// <returns>User ID if token is valid and not expired, null otherwise</returns>
-        Task<int?> VerifyPasswordResetTokenAsync(string token);
+        Task<int?> VerifyPasswordResetTokenAsync(string token, CancellationToken cancellationToken);
 
         #endregion
 

@@ -17,9 +17,9 @@ namespace CloudCore.Tests
     public class DbRepositoryTests : IDisposable
     {
         private readonly DbContextOptions<CloudCoreDbContext> _options;
-        private readonly Mock<ILogger<DbRepository>> _mockLogger;
+        private readonly Mock<ILogger<SubscriptionRepository>> _mockLogger;
         private readonly TestDbContextFactory _contextFactory;
-        private readonly DbRepository _repository;
+        private readonly SubscriptionRepository _repository;
 
         public DbRepositoryTests()
         {
@@ -29,9 +29,9 @@ namespace CloudCore.Tests
                 .ConfigureWarnings(x => x.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options;
 
-            _mockLogger = new Mock<ILogger<DbRepository>>();
+            _mockLogger = new Mock<ILogger<SubscriptionRepository>>();
             _contextFactory = new TestDbContextFactory(_options);
-            _repository = new DbRepository(_contextFactory, _mockLogger.Object);
+            _repository = new SubscriptionRepository(_contextFactory, _mockLogger.Object);
         }
 
         public void Dispose()

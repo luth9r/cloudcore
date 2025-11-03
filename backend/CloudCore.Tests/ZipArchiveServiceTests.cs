@@ -117,7 +117,7 @@ namespace CloudCore.Tests
         private void SetupEmptyFolder(int userId, int folderId)
         {
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(Array.Empty<Item>()));
         }
 
@@ -143,11 +143,11 @@ namespace CloudCore.Tests
             };
 
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(new[] { subFolder, file }));
 
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, subFolder.Id, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, subFolder.Id, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(Array.Empty<Item>()));
 
             _mockFileStorageService
@@ -283,7 +283,7 @@ namespace CloudCore.Tests
             };
 
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(new[] { fileItem }));
 
             _mockFileStorageService
@@ -330,7 +330,7 @@ namespace CloudCore.Tests
             };
 
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, folderId, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(new[] { fileItem }));
 
             // Act
@@ -445,7 +445,7 @@ namespace CloudCore.Tests
             };
 
             _mockItemRepository
-                .Setup(x => x.GetDirectChildrenAsync(userId, folderItem.Id, null, false))
+                .Setup(x => x.GetDirectChildrenAsync(userId, folderItem.Id, TODO, null, false))
                 .Returns(CreateAsyncEnumerable(new[] { nestedFile }));
 
             _mockFileStorageService

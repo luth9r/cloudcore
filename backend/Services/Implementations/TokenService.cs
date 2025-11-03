@@ -99,7 +99,7 @@ namespace CloudCore.Services.Implementations
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<bool> VerifyEmailTokenAsync(string token)
+        public async Task<bool> VerifyEmailTokenAsync(string token, CancellationToken cancellationToken)
         {
             var key = GetSymmetricSecurityKey();
 
@@ -124,12 +124,12 @@ namespace CloudCore.Services.Implementations
                 if (!int.TryParse(userIdClaim.Value, out int userId))
                     return false;
 
-                var user = await _userRepository.GetUserByIdAsync(userId);
+                var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
                 if (user == null)
                     return false;
 
                 user.IsEmailVerified = true;
-                await _userRepository.UpdateUserAsync(user);
+                await _userRepository.UpdateUserAsync(user, cancellationToken);
 
                 return true;
             }
@@ -223,7 +223,7 @@ namespace CloudCore.Services.Implementations
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<int?> VerifyPasswordResetTokenAsync(string token)
+        public async Task<int?> VerifyPasswordResetTokenAsync(string token, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Verifying password reset token");
 
@@ -265,7 +265,7 @@ namespace CloudCore.Services.Implementations
                     return null;
                 }
 
-                var user = await _userRepository.GetUserByIdAsync(userId);
+                var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
                 if (user == null)
                 {
                     _logger.LogWarning($"User not found for ID: {userId}");

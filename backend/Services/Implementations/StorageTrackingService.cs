@@ -9,14 +9,14 @@ namespace CloudCore.Services.Implementations
     public class StorageTrackingService : IStorageTrackingService
     {
         private readonly IDbContextFactory<CloudCoreDbContext> _dbContextFactory;
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly ISubscriptionRepository _subscriptionService;
         private readonly ILogger<StorageTrackingService> _logger;
 
         private const long BYTES_PER_MB = 1024 * 1024;
 
         public StorageTrackingService(
             IDbContextFactory<CloudCoreDbContext> dbContextFactory,
-            ISubscriptionService subscriptionService,
+            ISubscriptionRepository subscriptionService,
             ILogger<StorageTrackingService> logger)
         {
             _dbContextFactory = dbContextFactory;

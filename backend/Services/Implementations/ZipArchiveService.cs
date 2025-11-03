@@ -27,11 +27,11 @@ namespace CloudCore.Services.Implementations
             _storageCalculationService = storageCalculationService;
         }
 
-        public async Task<FileStream> CreateFolderArchiveAsync(int userId, int folderId, string folderName)
+        public async Task<FileStream> CreateFolderArchiveAsync(int userId, int folderId, string folderName, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting CreateFolderArchive for UserId: {UserId}, FolderId: {FolderId}, FolderName: '{FolderName}'", userId, folderId, folderName);
 
-            await ValidateArchive(userId, folderId); // Checks if archive will be valid
+            await ValidateArchive(userId, folderId, cancellationToken); // Checks if archive will be valid
 
             // Create a temporary file path with .zip extension
             var tempFilePath = Path.GetTempFileName() + ".zip";
@@ -43,18 +43,18 @@ namespace CloudCore.Services.Implementations
             {
                 // Recursively add all children starting from empty path (root of archive)
                 _logger.LogInformation("Starting to build zip archive recursively.");
-                await AddChildrenToZipAsync(zipArchive, userId, folderId, string.Empty);
+                await AddChildrenToZipAsync(zipArchive, userId, folderId, string.Empty, cancellationToken);
             }
 
             _logger.LogInformation("Temporary archive created successfully. Returning stream.");
             return new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose);
         }
-        private async Task AddChildrenToZipAsync(ZipArchive archive, int userId, int? parentId, string currentPath)
+        private async Task AddChildrenToZipAsync(ZipArchive archive, int userId, int? parentId, string currentPath, CancellationToken cancellationToken)
         {
             _logger.LogDebug("Processing children for ParentId: {ParentId}, Path: '{Path}'", parentId, currentPath);
 
             // Iterate through all direct children of the current parent folder
-            await foreach (var item in _itemRepository.GetDirectChildrenAsync(userId, parentId))
+            await foreach (var item in _itemRepository.GetDirectChildrenAsync(userId, parentId, cancellationToken))
             {
                 // Build the entry path by combining current path with item name
                 var entryPath = Path.Combine(currentPath, item.Name).Replace('\\', '/');
@@ -66,7 +66,7 @@ namespace CloudCore.Services.Implementations
                     archive.CreateEntry(entryPath + "/");
 
                     // Recurse into the folder to add its children
-                    await AddChildrenToZipAsync(archive, userId, item.Id, entryPath);
+                    await AddChildrenToZipAsync(archive, userId, item.Id, entryPath, cancellationToken);
                 }
                 else if (item.Type == "file")
                 {
@@ -110,7 +110,7 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task<FileStream> CreateMultipleItemArchiveAsync(int userId, IAsyncEnumerable<Item> items)
+        public async Task<FileStream> CreateMultipleItemArchiveAsync(int userId, IAsyncEnumerable<Item> items, CancellationToken cancellationToken)
         {
             await ValidateMultipleItemsArchive(userId, items);
 
@@ -135,7 +135,7 @@ namespace CloudCore.Services.Implementations
                         zipArchive.CreateEntry($"{item.Name}/");
 
                         // Add folder contents recursively using the SAME method as single folder download
-                        await AddChildrenToZipAsync(zipArchive, userId, item.Id, item.Name);
+                        await AddChildrenToZipAsync(zipArchive, userId, item.Id, item.Name, cancellationToken);
                     }
                     else if (item.Type == "file")
                     {
@@ -149,9 +149,9 @@ namespace CloudCore.Services.Implementations
             return new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose);
         }
 
-        public async Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items)
+        public async Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items, CancellationToken cancellationToken)
         {
-            return await _storageCalculationService.CalculateMultipleItemsSizeAsync(userId, items);
+            return await _storageCalculationService.CalculateMultipleItemsSizeAsync(userId, items, cancellationToken);
         }
 
         /// <summary>
@@ -186,11 +186,12 @@ namespace CloudCore.Services.Implementations
         /// </summary>
         /// <param name="userId">User ID for folder validation</param>
         /// <param name="folderId">Folder ID to validate (null for root level)</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Task that completes successfully if validation passes</returns>
         /// <exception cref="InvalidOperationException">Thrown when size exceeds 2000MB or file count exceeds 10000</exception>
-        private async Task ValidateArchive(int userId, int? folderId)
+        private async Task ValidateArchive(int userId, int? folderId, CancellationToken cancellationToken)
         {
-            var (totalSize, fileCount) = await _storageCalculationService.CalculateFolderSizeAsync(userId, folderId);
+            var (totalSize, fileCount) = await _storageCalculationService.CalculateFolderSizeAsync(userId, folderId, cancellationToken);
             var validationResult = _validationService.ValidateArchiveSize(totalSize, fileCount);
             if (!validationResult.IsValid)
                 throw new InvalidOperationException(validationResult.ErrorMessage);

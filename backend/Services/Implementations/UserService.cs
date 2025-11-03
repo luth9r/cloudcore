@@ -27,40 +27,40 @@ namespace CloudCore.Services.Implementations
             return password == storedPassword;
         }
 
-        public async Task<bool> ChangeUsernameAsync(int userId, string newUsername)
+        public async Task<bool> ChangeUsernameAsync(int userId, string newUsername, CancellationToken cancellationToken)
         {
-            var existingUser = await _userRepository.GetUserByNameAsync(newUsername);
+            var existingUser = await _userRepository.GetUserByNameAsync(newUsername, cancellationToken);
             if(existingUser != null)
                 return false;
 
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
             if (user == null) return false;
 
             user.Username = newUsername;
-            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.UpdateUserAsync(user, cancellationToken);
             return true;
         }
 
-        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
             if (user == null) return false;
 
-            if (!VerifyPassword(oldPassword, user.PasswordHash)) //FIXME use passwordhash
+            if (!VerifyPassword(oldPassword, user.PasswordHash!)) //FIXME use passwordhash
                 return false;
             _logger.LogInformation("Password verified successfully");
 
             user.PasswordHash = newPassword; //FIXME use passwordhash
-            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.UpdateUserAsync(user, cancellationToken);
             return true;
         }
 
-        public async Task<bool> SendEmailVerificationAsync(int userId, string newEmail)
+        public async Task<bool> SendEmailVerificationAsync(int userId, string newEmail, CancellationToken cancellationToken)
         {
-            if (await _userRepository.CheckUserExistsAsync(newEmail))
+            if (await _userRepository.CheckUserExistsAsync(newEmail, cancellationToken))
                 return false;
 
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
             if (user == null)
                 return false;
 
@@ -84,7 +84,7 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task<bool> ConfirmEmailChangeAsync(string token)
+        public async Task<bool> ConfirmEmailChangeAsync(string token, CancellationToken cancellationToken)
         {
             _logger.LogInformation("ConfirmEmailChangeAsync called");
 
@@ -113,7 +113,7 @@ namespace CloudCore.Services.Implementations
                 return false;
             }
 
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
             if (user == null)
             {
                 _logger.LogWarning("User with ID {UserId} not found during email confirmation", userId);
@@ -126,15 +126,15 @@ namespace CloudCore.Services.Implementations
             user.Email = newEmailClaim.Value;
             user.IsEmailVerified = true;
 
-            var changes = await _userRepository.UpdateUserAsync(user);
+            var changes = await _userRepository.UpdateUserAsync(user, cancellationToken);
             _logger.LogInformation("SaveChanges returned: {AffectedRows} affected rows", changes);
 
             return true;
         }
 
-        public async Task<bool> UpgradePlanAsync(int userId, SubscriptionPlan subscriptionPlan)
+        public async Task<bool> UpgradePlanAsync(int userId, SubscriptionPlan subscriptionPlan, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetUserByIdAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
 
             if (user == null)
             {
@@ -146,7 +146,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                currentPlan = ParseFromDbValue(user.SubscriptionPlan);
+                currentPlan = ParseFromDbValue(user.SubscriptionPlan!);
             }
             catch (ArgumentException ex)
             {
@@ -162,7 +162,7 @@ namespace CloudCore.Services.Implementations
             }
 
             user.SubscriptionPlan = ConvertToDbValue(subscriptionPlan);
-            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.UpdateUserAsync(user, cancellationToken);
 
             _logger.LogInformation("User ID {UserId} upgraded from {OldPlan} to {NewPlan}", userId, currentPlan, subscriptionPlan);
             return true;

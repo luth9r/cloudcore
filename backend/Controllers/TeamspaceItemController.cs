@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using System.Threading;
 using CloudCore.Common.Errors;
 using CloudCore.Common.QueryParameters;
 using CloudCore.Contracts.Requests;
@@ -36,12 +37,13 @@ namespace CloudCore.Controllers
         }
 
 
-        private async Task<ActionResult?> VerifyTeamspacePermission(int userId, int teamspaceId, string requiredPermission)
+        private async Task<ActionResult?> VerifyTeamspacePermission(int userId, int teamspaceId, string requiredPermission, CancellationToken cancellationToken)
         {
             var hasPermission = await _teamspaceApplication.VerifyTeamspacePermissionAsync(
                 userId,
                 teamspaceId,
-                requiredPermission);
+            requiredPermission,
+                cancellationToken);
 
             if (!hasPermission)
             {
@@ -66,10 +68,11 @@ namespace CloudCore.Controllers
             [Required] int userId,
             [Required] int teamspaceId,
             int? parentId,
-            [FromQuery] QueryParameters queryParams)
+            [FromQuery] QueryParameters queryParams,
+            CancellationToken cancellationToken)
         {
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             _logger.LogInformation("Fetching teamspace items. TeamspaceId={TeamspaceId}, ParentId={ParentId}",
@@ -81,13 +84,14 @@ namespace CloudCore.Controllers
                 parentId,
                 queryParams.Page,
                 queryParams.PageSize,
+                cancellationToken,
                 queryParams.SortBy,
                 queryParams.SortDir,
                 queryParams.SearchQuery);
 
             return Ok(new PaginatedResponse<ItemResponse>
             {
-                Data = result.Data.Select(i => i.ToResponseDto()),
+                Data = result.Data?.Select(i => i.ToResponseDto()),
                 Pagination = result.Pagination
             });
         }
@@ -101,11 +105,11 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> GetTeamspaceTrash(
             [Required] int userId,
             [Required] int teamspaceId,
-            [FromQuery] QueryParameters queryParams)
+            [FromQuery] QueryParameters queryParams, CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var result = await _teamspaceApplication.GetTeamspaceTrashAsync(
@@ -113,12 +117,13 @@ namespace CloudCore.Controllers
                 teamspaceId,
                 queryParams.Page,
                 queryParams.PageSize,
+                cancellationToken,
                 queryParams.SortBy,
                 queryParams.SortDir);
 
             return Ok(new PaginatedResponse<ItemResponse>
             {
-                Data = result.Data.Select(i => i.ToResponseDto()),
+                Data = result.Data?.Select(i => i.ToResponseDto()),
                 Pagination = result.Pagination
             });
         }
@@ -134,10 +139,11 @@ namespace CloudCore.Controllers
             [Required] int userId,
             [Required] int teamspaceId,
             IFormFile file,
+            CancellationToken cancellationToken,
             [FromForm] int? parentId = null)
         {
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             _logger.LogInformation("Uploading file to teamspace. TeamspaceId={TeamspaceId}, FileName={FileName}",
@@ -147,6 +153,7 @@ namespace CloudCore.Controllers
                 userId,
                 teamspaceId,
                 file,
+                cancellationToken,
                 parentId);
 
             if (!result.IsSuccess)
@@ -181,10 +188,10 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> CreateFolder(
             [Required] int userId,
             [Required] int teamspaceId,
-            [FromBody] FolderCreateRequest request)
+            [FromBody] FolderCreateRequest request, CancellationToken cancellationToken)
         {
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             _logger.LogInformation("Creating folder in teamspace. TeamspaceId={TeamspaceId}, FolderName={FolderName}",
@@ -193,7 +200,7 @@ namespace CloudCore.Controllers
             var result = await _teamspaceApplication.CreateFolderInTeamspaceAsync(
                 userId,
                 teamspaceId,
-                request);
+                request, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -225,17 +232,17 @@ namespace CloudCore.Controllers
             [Required] int userId,
             [Required] int teamspaceId,
             [Required] int itemId,
-            [FromBody] string newName)
+            [FromBody] string newName, CancellationToken cancellationToken)
         {
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var result = await _teamspaceApplication.RenameTeamspaceItemAsync(
                 userId,
                 teamspaceId,
                 itemId,
-                newName);
+                newName, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -266,16 +273,17 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> DeleteItem(
             [Required] int userId,
             [Required] int teamspaceId,
-            [Required] int itemId)
+            [Required] int itemId,
+            CancellationToken cancellationToken)
         {
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var result = await _teamspaceApplication.SoftDeleteTeamspaceItemAsync(
                 userId,
                 teamspaceId,
-                itemId);
+                itemId, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -299,17 +307,17 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> RestoreItem(
             [Required] int userId,
             [Required] int teamspaceId,
-            [Required] int itemId)
+            [Required] int itemId, CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "write", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var result = await _teamspaceApplication.RestoreTeamspaceItemAsync(
                 userId,
                 teamspaceId,
-                itemId);
+                itemId, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -333,17 +341,18 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> DownloadFile(
             [Required] int userId,
             [Required] int teamspaceId,
-            [Required] int fileId)
+            [Required] int fileId,
+            CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var fileResult = await _teamspaceApplication.DownloadTeamspaceFileAsync(
                 userId,
                 teamspaceId,
-                fileId);
+                fileId, cancellationToken);
 
             return File(fileResult.Stream, fileResult.MimeType, fileResult.FileName, enableRangeProcessing: true);
         }
@@ -358,17 +367,18 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> DownloadFolder(
             [Required] int userId,
             [Required] int teamspaceId,
-            [Required] int folderId)
+            [Required] int folderId,
+            CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var (archiveStream, fileName) = await _teamspaceApplication.DownloadTeamspaceFolderAsync(
                 userId,
                 teamspaceId,
-                folderId);
+                folderId, cancellationToken);
 
             return File(archiveStream, "application/zip", fileName);
         }
@@ -382,17 +392,18 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> DownloadMultipleItems(
             [Required] int userId,
             [Required] int teamspaceId,
-            [FromBody] List<int> itemIds)
+            [FromBody] List<int> itemIds,
+            CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var (archiveStream, fileName) = await _teamspaceApplication.DownloadMultipleTeamspaceItemsAsync(
                 userId,
                 teamspaceId,
-                itemIds);
+                itemIds, cancellationToken);
 
             return File(archiveStream, "application/zip", fileName);
         }
@@ -406,17 +417,17 @@ namespace CloudCore.Controllers
         public async Task<IActionResult> GetFolderPath(
             [Required] int userId,
             [Required] int teamspaceId,
-            [Required] int folderId)
+            [Required] int folderId, CancellationToken cancellationToken)
         {
 
 
-            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read");
+            var permissionResult = await VerifyTeamspacePermission(userId, teamspaceId, "read", cancellationToken);
             if (permissionResult != null) return permissionResult;
 
             var path = await _teamspaceApplication.GetTeamspaceBreadcrumbPathAsync(
                 userId,
                 teamspaceId,
-                folderId);
+                folderId, cancellationToken);
 
             return Ok(path);
         }

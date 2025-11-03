@@ -16,17 +16,19 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User ID for authorization and file path resolution</param>
         /// <param name="folderId">ID of the folder to archive</param>
         /// <param name="folderName">Name of the folder to use as root in the archive</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Memory stream containing the ZIP archive data</returns>
 
-        Task<FileStream> CreateFolderArchiveAsync(int userId, int folderId, string folderName);
+        Task<FileStream> CreateFolderArchiveAsync(int userId, int folderId, string folderName, CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates a ZIP archive containing multiple selected items (files and folders)
         /// </summary>
         /// <param name="userId">User ID for authorization and file path resolution</param>
         /// <param name="itemsIds">List of item to include in the archive</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Memory stream containing the ZIP archive data</returns>
-        Task<FileStream> CreateMultipleItemArchiveAsync(int userId, IAsyncEnumerable<Item> itemsIds);
+        Task<FileStream> CreateMultipleItemArchiveAsync(int userId, IAsyncEnumerable<Item> itemsIds, CancellationToken cancellationToken);
 
 
         /// <summary>
@@ -34,6 +36,7 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="userId">User ID for folder size calculations</param>
         /// <param name="items">Collection of items to process, can contain both files and folders</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Tuple containing combined size in bytes and total file count</returns>
         /// <remarks>
         /// Processes files directly using their FileSize property with null-safety
@@ -41,7 +44,7 @@ namespace CloudCore.Services.Interfaces
         /// Accumulates totals from all items regardless of their type
         /// Handles mixed collections efficiently without duplicate database queries
         /// </remarks>
-        Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items);
+        Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items, CancellationToken cancellationToken);
 
     }
 }

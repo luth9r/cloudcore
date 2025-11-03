@@ -21,6 +21,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="parentId">Parent folder ID (null for root)</param>
         /// <param name="page">Page number for pagination</param>
         /// <param name="pageSize">Number of items per page</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <param name="sortBy">Field to sort by</param>
         /// <param name="sortDir">Sort direction (asc/desc)</param>
         /// <param name="searchQuery">Optional search query</param>
@@ -31,6 +32,7 @@ namespace CloudCore.Services.Interfaces
             int? parentId,
             int page,
             int pageSize,
+            CancellationToken cancellationToken,
             string? sortBy,
             string? sortDir,
             string? searchQuery = null);
@@ -43,6 +45,7 @@ namespace CloudCore.Services.Interfaces
             int teamspaceId,
             int page,
             int pageSize,
+            CancellationToken cancellationToken,
             string? sortBy,
             string? sortDir);
 
@@ -53,7 +56,8 @@ namespace CloudCore.Services.Interfaces
             int userId,
             int teamspaceId,
             int itemId,
-            string type);
+            string type,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the breadcrumb path for a teamspace folder
@@ -61,7 +65,7 @@ namespace CloudCore.Services.Interfaces
         Task<string> GetTeamspaceBreadcrumbPathAsync(
             int userId,
             int teamspaceId,
-            int folderId);
+            int folderId, CancellationToken cancellationToken);
 
         #endregion
 
@@ -73,12 +77,14 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User uploading the file (must have write permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="file">File to upload</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <param name="parentId">Optional parent folder ID</param>
         /// <returns>Upload result with file details</returns>
         Task<UploadResult> UploadFileToTeamspaceAsync(
             int userId,
             int teamspaceId,
             IFormFile file,
+            CancellationToken cancellationToken,
             int? parentId = null);
 
         /// <summary>
@@ -87,11 +93,13 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User creating the folder (must have write permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="request">Folder creation request</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Folder creation result</returns>
         Task<CreateFolderResult> CreateFolderInTeamspaceAsync(
             int userId,
             int teamspaceId,
-            FolderCreateRequest request);
+            FolderCreateRequest request,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Renames an item in a teamspace
@@ -100,12 +108,13 @@ namespace CloudCore.Services.Interfaces
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="itemId">ID of the item to rename</param>
         /// <param name="newName">New name for the item</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Rename result</returns>
         Task<RenameResult> RenameTeamspaceItemAsync(
             int userId,
             int teamspaceId,
             int itemId,
-            string newName);
+            string newName, CancellationToken cancellationToken);
 
         /// <summary>
         /// Soft deletes an item in a teamspace (moves to trash)
@@ -113,11 +122,12 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User deleting the item (must have write permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="itemId">ID of the item to delete</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Delete result</returns>
         Task<DeleteResult> SoftDeleteTeamspaceItemAsync(
             int userId,
             int teamspaceId,
-            int itemId);
+            int itemId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Restores an item from the teamspace trash
@@ -125,11 +135,12 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User restoring the item (must have write permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="itemId">ID of the item to restore</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Restore result</returns>
         Task<RestoreResult> RestoreTeamspaceItemAsync(
             int userId,
             int teamspaceId,
-            int itemId);
+            int itemId, CancellationToken cancellationToken);
 
         #endregion
 
@@ -141,11 +152,12 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User downloading the file (must have read permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="fileId">ID of the file to download</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>File download result with stream</returns>
         Task<FileDownloadResult> DownloadTeamspaceFileAsync(
             int userId,
             int teamspaceId,
-            int fileId);
+            int fileId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Downloads a folder as a ZIP archive from a teamspace
@@ -153,11 +165,12 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User downloading the folder (must have read permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="folderId">ID of the folder to download</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Archive stream and filename</returns>
         Task<(Stream archiveStream, string fileName)> DownloadTeamspaceFolderAsync(
             int userId,
             int teamspaceId,
-            int folderId);
+            int folderId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Downloads multiple items as a ZIP archive from a teamspace
@@ -165,11 +178,12 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User downloading the items (must have read permission)</param>
         /// <param name="teamspaceId">ID of the teamspace</param>
         /// <param name="itemIds">List of item IDs to download</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Archive stream and filename</returns>
         Task<(Stream archiveStream, string fileName)> DownloadMultipleTeamspaceItemsAsync(
             int userId,
             int teamspaceId,
-            List<int> itemIds);
+            List<int> itemIds, CancellationToken cancellationToken);
 
         #endregion
 
@@ -181,31 +195,36 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User ID to check</param>
         /// <param name="teamspaceId">Teamspace ID</param>
         /// <param name="requiredPermission">Required permission level (read/write/admin)</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if user has permission, false otherwise</returns>
         Task<bool> VerifyTeamspacePermissionAsync(
             int userId,
             int teamspaceId,
-            string requiredPermission);
+            string requiredPermission, CancellationToken cancellationToken);
 
         /// <summary>
         /// Verifies that an item belongs to the specified teamspace
         /// </summary>
         /// <param name="itemId">Item ID to verify</param>
         /// <param name="teamspaceId">Expected teamspace ID</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if item belongs to teamspace, false otherwise</returns>
         Task<bool> VerifyItemBelongsToTeamspaceAsync(
             int itemId,
-            int teamspaceId);
+            int teamspaceId,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Checks if uploading a file would exceed the teamspace storage limit
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID</param>
         /// <param name="fileSizeBytes">Size of the file to upload in bytes</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if within limit, false if would exceed</returns>
         Task<bool> CheckStorageLimitAsync(
             int teamspaceId,
-            long fileSizeBytes);
+            long fileSizeBytes,
+            CancellationToken cancellationToken);
 
         #endregion
     }

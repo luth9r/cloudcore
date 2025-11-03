@@ -2,7 +2,7 @@ using CloudCore.Common.Models;
 
 namespace CloudCore.Services.Interfaces
 {
-    public interface ISubscriptionService
+    public interface ISubscriptionRepository
     {
         Task<TeamspaceLimits> GetTeamspaceLimitsAsync(int userId);
         Task<bool> CanCreateTeamspaceAsync(int userId);

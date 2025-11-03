@@ -32,11 +32,11 @@ namespace CloudCore.Services.Implementations
         }
 
         #region Helpers
-        private IAsyncEnumerable<Item> CreateItemStream(int userId, Item item)
+        private IAsyncEnumerable<Item> CreateItemStream(int userId, Item item, CancellationToken cancellationToken)
         {
             if (item.Type == "folder")
             {
-                return _itemRepository.GetAllChildItemsAsync(userId, item.Id).Prepend(item);
+                return _itemRepository.GetAllChildItemsAsync(userId, item.Id, cancellationToken).Prepend(item);
             }
             else
             {
@@ -44,23 +44,23 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        private async Task ProcessItemStreamsAsync(int userId, Item rootItem, Func<IAsyncEnumerable<Item>, IAsyncEnumerable<Item>> prepare, Func<int, IAsyncEnumerable<Item>, bool, Task> storageAction, bool isAdding)
+        private async Task ProcessItemStreamsAsync(int userId, Item rootItem, Func<IAsyncEnumerable<Item>, IAsyncEnumerable<Item>> prepare, Func<int, IAsyncEnumerable<Item>, bool, Task> storageAction, bool isAdding, CancellationToken cancellationToken)
         {
-            var streamForDb = CreateItemStream(userId, rootItem);
+            var streamForDb = CreateItemStream(userId, rootItem, cancellationToken);
             var preparedForDb = prepare(streamForDb);
 
-            await _itemRepository.UpdateItemsInTransactionAsync(preparedForDb);
+            await _itemRepository.UpdateItemsInTransactionAsync(preparedForDb, cancellationToken);
 
-            var streamForStorage = CreateItemStream(userId, rootItem);
+            var streamForStorage = CreateItemStream(userId, rootItem, cancellationToken);
             await storageAction(userId, streamForStorage, isAdding);
         }
         #endregion
 
         #region Get something
 
-        public async Task<PaginatedResponse<Item>> GetItemsAsync(int userId, int? parentId, int page, int pageSize, string? sortBy, string? sortDir, bool isTrashFolder = false, string? searchQuery = null, int? teamspaceId = null)
+        public async Task<PaginatedResponse<Item>> GetItemsAsync(int userId, int? parentId, int page, int pageSize, CancellationToken cancellationToken, string? sortBy, string? sortDir, bool isTrashFolder = false, string? searchQuery = null, int? teamspaceId = null)
         {
-            var (items, totalCount) = await _itemRepository.GetItemsAsync(userId, parentId, page, pageSize, sortBy, sortDir, isTrashFolder, searchQuery);
+            var (items, totalCount) = await _itemRepository.GetItemsAsync(userId, parentId, page, pageSize, cancellationToken, sortBy, sortDir, isTrashFolder, searchQuery);
             int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             return new PaginatedResponse<Item>
             {
@@ -78,31 +78,31 @@ namespace CloudCore.Services.Implementations
         }
 
 
-        public async Task<Item?> GetItemAsync(int userId, int itemId, string type, int? teamspaceId = null)
+        public async Task<Item?> GetItemAsync(int userId, int itemId, string type, CancellationToken cancellationToken, int? teamspaceId = null)
         {
-            return await _itemRepository.GetItemAsync(userId, itemId, type);
+            return await _itemRepository.GetItemAsync(itemId, userId, type, cancellationToken);
         }
 
-        public async Task<Item?> GetItemByNameAsync(int userId, string name, int? parentId, int? teamspaceId = null)
+        public async Task<Item?> GetItemByNameAsync(int userId, string name, int? parentId, CancellationToken cancellationToken, int? teamspaceId = null)
         {
-            return await _itemRepository.GetItemByNameAsync(userId, name, parentId, teamspaceId);
+            return await _itemRepository.GetItemByNameAsync(userId, name, parentId, cancellationToken, teamspaceId);
         }
 
-        public IAsyncEnumerable<Item?> GetDirectChildrenAsync(int userId, int? parentId, string? itemType = null, bool includeDeleted = false)
+        public IAsyncEnumerable<Item?> GetDirectChildrenAsync(int userId, int? parentId, CancellationToken cancellationToken, string? itemType = null, bool includeDeleted = false)
         {
-            return _itemRepository.GetDirectChildrenAsync(userId, parentId, itemType, includeDeleted);
+            return _itemRepository.GetDirectChildrenAsync(userId, parentId, cancellationToken, itemType, includeDeleted);
         }
 
-        public async Task<string> GetBreadcrumbPathAsync(int userId, int folderId, string type)
+        public async Task<string> GetBreadcrumbPathAsync(int userId, int folderId, string type, CancellationToken cancellationToken)
         {
-            var folder = await GetItemAsync(userId, folderId, type);
+            var folder = await GetItemAsync(userId, folderId, type, cancellationToken);
             if (folder == null)
             {
                 _logger.LogWarning("Folder not found for User Id: {UserId}, Folder Id: {FolderId}", userId, folderId);
                 throw new FileNotFoundException(ErrorCodes.FOLDER_NOT_FOUND);
             }
 
-            string folderPath = await _itemRepository.GetBreadcrumbPathAsync(folder);
+            string folderPath = await _itemRepository.GetBreadcrumbPathAsync(folder, cancellationToken);
             if (string.IsNullOrEmpty(folderPath))
                 return folder.Name;
 
@@ -112,24 +112,24 @@ namespace CloudCore.Services.Implementations
         #endregion
 
         #region Download something
-        public async Task<(Stream archiveStream, string fileName)> DownloadFolderAsync(int userId, int folderId)
+        public async Task<(Stream archiveStream, string fileName)> DownloadFolderAsync(int userId, int folderId, CancellationToken cancellationToken)
         {
-            var folder = await _itemRepository.GetItemAsync(userId, folderId, "folder");
+            var folder = await _itemRepository.GetItemAsync(folderId, userId, "folder", cancellationToken);
             if (folder == null || folder.IsDeleted == true)
             {
                 _logger.LogWarning("DownloadFolder failed: Folder with ID {FolderId} not found for user {UserId}", folderId, userId);
                 throw new FileNotFoundException(ErrorCodes.FOLDER_NOT_FOUND);
             }
 
-            var archiveStream = await _zipArchiveService.CreateFolderArchiveAsync(userId, folderId, folder.Name);
+            var archiveStream = await _zipArchiveService.CreateFolderArchiveAsync(userId, folderId, folder.Name, cancellationToken);
             var fileName = $"{folder.Name}.zip";
 
             return (archiveStream, fileName);
         }
 
-        public async Task<FileDownloadResult> DownloadFileAsync(int userId, int fileId)
+        public async Task<FileDownloadResult> DownloadFileAsync(int userId, int fileId, CancellationToken cancellationToken)
         {
-            var file = await _itemRepository.GetItemAsync(userId, fileId, "file");
+            var file = await _itemRepository.GetItemAsync(fileId, userId, "file", cancellationToken);
             if (file == null || file.IsDeleted == true)
             {
                 _logger.LogWarning("DownloadFile failed: File with ID {FilerId} not found for user {UserId}", fileId, userId);
@@ -154,14 +154,14 @@ namespace CloudCore.Services.Implementations
 
         }
 
-        public async Task<(Stream archiveStream, string fileName)> DownloadMultipleItemsAsZipAsync(int userId, List<int> itemsIds)
+        public async Task<(Stream archiveStream, string fileName)> DownloadMultipleItemsAsZipAsync(int userId, List<int> itemsIds, CancellationToken cancellationToken)
         {
 
-            var itemsValidation = await _validationService.ValidateItemIdsAsync(itemsIds, userId);
+            var itemsValidation = await _validationService.ValidateItemIdsAsync(itemsIds, userId, cancellationToken);
             if (!itemsValidation.IsValid)
                 throw new InvalidOperationException(itemsValidation.ErrorMessage);
 
-            var itemsAsync = _itemRepository.GetItemsByIdsForUserAsync(userId, itemsIds);
+            var itemsAsync = _itemRepository.GetItemsByIdsForUserAsync(userId, itemsIds, cancellationToken);
 
             long totalSize = 0;
             int itemCount = 0;
@@ -177,7 +177,7 @@ namespace CloudCore.Services.Implementations
             if (!sizeValidation.IsValid)
                 throw new InvalidOperationException(sizeValidation.ErrorMessage);
 
-            var archiveStream = await _zipArchiveService.CreateMultipleItemArchiveAsync(userId, _itemRepository.GetItemsByIdsForUserAsync(userId, itemsIds));
+            var archiveStream = await _zipArchiveService.CreateMultipleItemArchiveAsync(userId, _itemRepository.GetItemsByIdsForUserAsync(userId, itemsIds, cancellationToken), cancellationToken);
             var fileName = $"selected_items_{DateTime.UtcNow:yyyyMMdd_HHmmss}.zip";
 
             return (archiveStream, fileName);
@@ -187,11 +187,11 @@ namespace CloudCore.Services.Implementations
 
         #region Modify something
 
-        public async Task<RestoreResult> RestoreItemAsync(int userId, int itemId)
+        public async Task<RestoreResult> RestoreItemAsync(int userId, int itemId, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Restore request for ItemId: {ItemId}, UserId: {UserId}", itemId, userId);
 
-            var itemToRestore = await _itemRepository.GetDeletedItemAsync(userId, itemId);
+            var itemToRestore = await _itemRepository.GetDeletedItemAsync(userId, itemId, cancellationToken);
             if (itemToRestore == null)
                 return new RestoreResult
                 {
@@ -200,7 +200,7 @@ namespace CloudCore.Services.Implementations
                     Message = "Item not found in recycle bin."
                 };
 
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(itemToRestore.Name, itemToRestore.Type, userId, itemToRestore.ParentId);
+            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(itemToRestore.Name, itemToRestore.Type, userId, itemToRestore.ParentId, cancellationToken);
             if (!uniquenessValidation.IsValid)
                 return new RestoreResult
                 {
@@ -211,7 +211,7 @@ namespace CloudCore.Services.Implementations
 
             if (itemToRestore.Type == "file" && itemToRestore.ParentId.HasValue)
             {
-                var parentExists = await _validationService.ValidateItemExistsAsync(itemToRestore.ParentId.Value, userId, "folder");
+                var parentExists = await _validationService.ValidateItemExistsAsync(itemToRestore.ParentId.Value, userId, cancellationToken, "folder");
                 if (!parentExists.IsValid)
                     return new RestoreResult
                     {
@@ -221,7 +221,7 @@ namespace CloudCore.Services.Implementations
                     };
             }
 
-            var streamForSize = CreateItemStream(userId, itemToRestore);
+            var streamForSize = CreateItemStream(userId, itemToRestore, cancellationToken);
             long totalBytes = 0;
             await foreach (var item in streamForSize)
             {
@@ -244,7 +244,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await ProcessItemStreamsAsync(userId, itemToRestore, _itemManagerService.PrepareItemsForRestoreAsync, _storageTrackingService.UpdateStorageForItemsAsync, isAdding: true);
+                await ProcessItemStreamsAsync(userId, itemToRestore, _itemManagerService.PrepareItemsForRestoreAsync, _storageTrackingService.UpdateStorageForItemsAsync, isAdding: true, cancellationToken);
 
                 _logger.LogInformation("Item {ItemId} and its children restored successfully.", itemId);
                 return new RestoreResult
@@ -267,12 +267,12 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task<RenameResult> RenameItemAsync(int userId, int itemId, string newName)
+        public async Task<RenameResult> RenameItemAsync(int userId, int itemId, string newName, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Rename request received. UserId={UserId}, ItemId={ItemId}, NewName={NewName}",
         userId, itemId, newName);
 
-            var item = await _itemRepository.GetItemAsync(userId, itemId, null);
+            var item = await _itemRepository.GetItemAsync(itemId, userId, null, cancellationToken);
             if (item == null)
             {
                 _logger.LogInformation("Item retrieved successfully. ItemId={ItemId}, CurrentName={CurrentName}, ParentId={ParentId}", item!.Id, item.Name, item.ParentId);
@@ -300,7 +300,7 @@ namespace CloudCore.Services.Implementations
                 };
             }
 
-            var itemExistsValidation = await _validationService.ValidateItemExistsAsync(itemId, userId);
+            var itemExistsValidation = await _validationService.ValidateItemExistsAsync(itemId, userId, cancellationToken);
             if (!itemExistsValidation.IsValid)
             {
                 _logger.LogWarning("Item existence validation failed. UserId={UserId}, ItemId={ItemId}, ErrorCode={ErrorCode}", userId, itemId, itemExistsValidation.ErrorCode);
@@ -312,7 +312,7 @@ namespace CloudCore.Services.Implementations
                 };
             }
 
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(newName, item.Type, userId, item.ParentId, itemId, true);
+            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(newName, item.Type, userId, item.ParentId, cancellationToken, itemId, true);
             if (!uniquenessValidation.IsValid)
             {
                 _logger.LogWarning("Uniqueness validation failed. ItemId={ItemId}, NewName={NewName}, ErrorCode={ErrorCode}", item.Id, newName, uniquenessValidation.ErrorCode);
@@ -324,27 +324,27 @@ namespace CloudCore.Services.Implementations
                 };
             }
 
-            IAsyncEnumerable<Item> itemsToSoftDelete;
+            IAsyncEnumerable<Item> itemsToRename;
             var folderPath = String.Empty;
             if (item.Type == "folder")
             {
-                itemsToSoftDelete = _itemRepository.GetAllChildItemsAsync(userId, itemId)
+                itemsToRename = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken)
                                                   .Prepend(item);
 
-                folderPath = await _itemRepository.GetFolderPathAsync(item);
+                folderPath = await _itemRepository.GetFolderPathAsync(item, cancellationToken);
                 folderPath = Path.Combine(_itemStorageService.GetUserStoragePath(userId), folderPath);
                 _logger.LogInformation("Folder Path is {FolderPath}", folderPath);
             }
             else
             {
-                itemsToSoftDelete = AsyncEnumerable.Repeat(item, 1);
+                itemsToRename = AsyncEnumerable.Repeat(item, 1);
             }
 
-            var preparedItemsAsync = _itemManagerService.PrepareItemsForRenaming(item, newName, itemsToSoftDelete, folderPath);
+            var preparedItemsAsync = _itemManagerService.PrepareItemsForRenaming(item, newName, itemsToRename, folderPath);
 
             try
             {
-                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
+                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync, cancellationToken);
                 _logger.LogInformation("Item renamed successfully in DB. ItemId={ItemId}, NewName={NewName}", item.Id, newName);
 
                 return new RenameResult
@@ -371,9 +371,9 @@ namespace CloudCore.Services.Implementations
         }
 
 
-        public async Task<MoveResult> MoveItemAsync(int userId, int itemId, int? targetId)
+        public async Task<MoveResult> MoveItemAsync(int userId, int itemId, int? targetId, CancellationToken cancellationToken)
         {
-            var item = await _itemRepository.GetItemAsync(userId, itemId, null);
+            var item = await _itemRepository.GetItemAsync(itemId, userId, null, cancellationToken);
             if (item == null)
             {
                 _logger.LogWarning("MoveItem failed: Item with ID {ItemId} not found for user {UserId}", itemId, userId);
@@ -390,7 +390,7 @@ namespace CloudCore.Services.Implementations
 
             if (!isMovingToRoot)
             {
-                targetItem = await _itemRepository.GetItemAsync(userId, (int)targetId!, null);
+                targetItem = await _itemRepository.GetItemAsync((int)targetId!, userId, null, cancellationToken);
                 if (targetItem == null)
                 {
                     _logger.LogWarning("MoveItem failed: Target item with ID {TargetId} not found for user {UserId}", targetId, userId);
@@ -415,7 +415,7 @@ namespace CloudCore.Services.Implementations
 
             if (item.Type == "folder" && !isMovingToRoot)
             {
-                var circularValidation = await _validationService.ValidateIsFolderSubFolder(userId, itemId, (int)targetId!);
+                var circularValidation = await _validationService.ValidateIsFolderSubFolder(userId, itemId, (int)targetId!, cancellationToken);
                 if (!circularValidation.IsValid)
                 {
                     _logger.LogWarning("MoveItem failed: Circular validation failed for ItemId {ItemId} and TargetId {TargetId} for user {UserId}", itemId, targetId, userId);
@@ -429,7 +429,7 @@ namespace CloudCore.Services.Implementations
             }
 
             int? actualTargetId = isMovingToRoot ? null : targetId;
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(item.Name, item.Type, userId, actualTargetId, itemId, true);
+            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(item.Name, item.Type, userId, actualTargetId, cancellationToken, itemId, true);
             if (!uniquenessValidation.IsValid)
             {
                 _logger.LogWarning("MoveItem failed: Uniqueness validation failed for ItemId {ItemId} and TargetId {TargetId} for user {UserId}", itemId, targetId, userId);
@@ -443,13 +443,13 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                IAsyncEnumerable<Item> childItemsAsync = CreateItemStream(userId, item);
+                IAsyncEnumerable<Item> childItemsAsync = CreateItemStream(userId, item, cancellationToken);
                 var basePath = _itemStorageService.GetUserStoragePath(userId);
 
                 string? sourceFolderPath = null;
                 if (item.Type == "folder")
                 {
-                    var sourceFolderPathRelative = await _itemRepository.GetFolderPathAsync(item);
+                    var sourceFolderPathRelative = await _itemRepository.GetFolderPathAsync(item, cancellationToken);
                     sourceFolderPath = Path.Combine(basePath, sourceFolderPathRelative);
                     _logger.LogInformation("Source folder path: {Path}", sourceFolderPath);
                 }
@@ -461,15 +461,15 @@ namespace CloudCore.Services.Implementations
                 }
                 else
                 {
-                    var targetRelativePath = await _itemRepository.GetFolderPathAsync(targetItem!);
+                    var targetRelativePath = await _itemRepository.GetFolderPathAsync(targetItem!, cancellationToken);
                     destinationFolderPath = Path.Combine(basePath, targetRelativePath);
                 }
                 _logger.LogInformation("Destination folder path: {Path}", destinationFolderPath);
 
                 var preparedItemsAsync = _itemManagerService.PrepareItemsForMoving(item, actualTargetId, destinationFolderPath, sourceFolderPath, childItemsAsync);
-                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
+                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync, cancellationToken);
 
-                var itemsForCount = _itemRepository.GetAllChildItemsAsync(userId, itemId).Prepend(item);
+                var itemsForCount = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken).Prepend(item);
                 var count = await itemsForCount.CountAsync() - 1;
 
                 return new MoveResult
@@ -497,10 +497,10 @@ namespace CloudCore.Services.Implementations
 
         #region Delete something
 
-        public async Task<DeleteResult> SoftDeleteItemAsync(int userId, int itemId)
+        public async Task<DeleteResult> SoftDeleteItemAsync(int userId, int itemId, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Delete request received. UserId={UserId}, ItemId={ItemId}", userId, itemId);
-            var item = await _itemRepository.GetItemAsync(userId, itemId, null);
+            var item = await _itemRepository.GetItemAsync(itemId, userId, null, cancellationToken);
 
             if (item == null)
             {
@@ -517,7 +517,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await ProcessItemStreamsAsync(userId, item, _itemManagerService.PrepareItemsForSoftDeleteAsync, _storageTrackingService.UpdateStorageForItemsAsync, isAdding: false);
+                await ProcessItemStreamsAsync(userId, item, _itemManagerService.PrepareItemsForSoftDeleteAsync, _storageTrackingService.UpdateStorageForItemsAsync, isAdding: false, cancellationToken);
 
                 _logger.LogInformation("Item deleted successfully. ItemId={ItemId}, Type={ItemType}, Name={ItemName}",
                     item.Id, item.Type, item.Name);
@@ -543,10 +543,10 @@ namespace CloudCore.Services.Implementations
         }
 
 
-        public async Task<DeleteResult> DeleteItemPermanentlyAsync(int userId, int itemId)
+        public async Task<DeleteResult> DeleteItemPermanentlyAsync(int userId, int itemId, CancellationToken cancellationToken)
         {
             _logger.LogInformation("");
-            var item = await _itemRepository.GetItemAsync(userId, itemId, null);
+            var item = await _itemRepository.GetItemAsync(itemId, userId, null, cancellationToken);
 
             if (item == null)
             {
@@ -566,9 +566,9 @@ namespace CloudCore.Services.Implementations
                 if (item.Type == "folder")
                 {
                     _logger.LogInformation("ItemId={ItemId} is folder. Getting it`s Folder Path...", item.Id);
-                    folderPathWithoutUserPart = await _itemRepository.GetFolderPathAsync(item);
+                    folderPathWithoutUserPart = await _itemRepository.GetFolderPathAsync(item, cancellationToken);
                 }
-                await _itemRepository.DeleteItemPermanentlyAsync(item);
+                await _itemRepository.DeleteItemPermanentlyAsync(item, cancellationToken);
                 _itemStorageService.DeleteItemPhysically(item, folderPathWithoutUserPart);
 
                 return new DeleteResult
@@ -595,7 +595,7 @@ namespace CloudCore.Services.Implementations
 
         #region Upload/Create something
 
-        public async Task<UploadResult> UploadFileAsync(int userId, IFormFile file, int? parentId = null, int? teamspaceId = null)
+        public async Task<UploadResult> UploadFileAsync(int userId, IFormFile file, CancellationToken cancellationToken, int? parentId = null, int? teamspaceId = null)
         {
             var fileValidation = _validationService.ValidateFile(file);
             if (!fileValidation.IsValid)
@@ -630,7 +630,7 @@ namespace CloudCore.Services.Implementations
 
             if (parentId.HasValue)
             {
-                var parentFolder = await _itemRepository.GetItemAsync(userId, parentId.Value, "folder");
+                var parentFolder = await _itemRepository.GetItemAsync(parentId.Value, userId, "folder", cancellationToken);
 
                 if (parentFolder == null)
                 {
@@ -642,11 +642,11 @@ namespace CloudCore.Services.Implementations
                         Message = "The destination folder does not exist."
                     };
                 }
-                var parentFolderPath = await _itemRepository.GetFolderPathAsync(parentFolder);
+                var parentFolderPath = await _itemRepository.GetFolderPathAsync(parentFolder, cancellationToken);
                 targetDirectory = parentFolderPath;
             }
 
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(file.FileName, "file", userId, parentId, null, true);
+            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(file.FileName, "file", userId, parentId, cancellationToken, null, true);
             if (!uniquenessValidation.IsValid)
             {
                 return new UploadResult
@@ -662,7 +662,7 @@ namespace CloudCore.Services.Implementations
 
                 createdItem = await _itemManagerService.ProcessUploadAsync(userId, parentId, file, targetDirectory);
 
-                await _itemRepository.AddItemInTranscationAsync(createdItem);
+                await _itemRepository.AddItemInTranscationAsync(createdItem, cancellationToken);
                 _logger.LogInformation("Item added successfully in DB.");
 
                 await _storageTrackingService.AddToPersonalStorageAsync(userId, file.Length);
@@ -689,7 +689,7 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task<CreateFolderResult> CreateFolderAsync(int userId, FolderCreateRequest request, int? teamspaceId = null)
+        public async Task<CreateFolderResult> CreateFolderAsync(int userId, FolderCreateRequest request, CancellationToken cancellationToken, int? teamspaceId = null)
         {
             var nameValidation = _validationService.ValidateItemName(request.Name);
             if (!nameValidation.IsValid)
@@ -703,7 +703,7 @@ namespace CloudCore.Services.Implementations
             // Validate parent folder exists if specified
             if (request.ParentId.HasValue)
             {
-                var parentValidation = await _validationService.ValidateItemExistsAsync(request.ParentId.Value, userId);
+                var parentValidation = await _validationService.ValidateItemExistsAsync(request.ParentId.Value, userId, cancellationToken);
                 if (!parentValidation.IsValid)
                     return new CreateFolderResult
                     {
@@ -714,7 +714,7 @@ namespace CloudCore.Services.Implementations
             }
 
             // Check if folder with same name already exists
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(request.Name, "folder", userId, request.ParentId, null, true);
+            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(request.Name, "folder", userId, request.ParentId, cancellationToken, null, true);
             if (!uniquenessValidation.IsValid)
                 return new CreateFolderResult
                 {
@@ -737,15 +737,15 @@ namespace CloudCore.Services.Implementations
             try
             {
 
-                await _itemRepository.AddItemInTranscationAsync(folder);
+                await _itemRepository.AddItemInTranscationAsync(folder, cancellationToken);
 
-                string relativeFolderPath = await _itemRepository.GetFolderPathAsync(folder);
+                string relativeFolderPath = await _itemRepository.GetFolderPathAsync(folder, cancellationToken);
                 bool result = _itemStorageService.TryCreateFolder(userId, relativeFolderPath);
                 if (!result)
                 {
                     _logger.LogError("Failed to create physical folder on disk at path: {Path}. Rolling back database entry.", relativeFolderPath);
 
-                    await _itemRepository.DeleteItemPermanentlyAsync(folder);
+                    await _itemRepository.DeleteItemPermanentlyAsync(folder, cancellationToken);
                     return new CreateFolderResult
                     {
                         IsSuccess = false,

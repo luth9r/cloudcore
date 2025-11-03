@@ -69,7 +69,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="targetFolderId">The ID of the destination folder.</param>
         /// <returns>
         /// A ValidationResult indicating whether the move operation is valid.
-        Task<ValidationResult> ValidateIsFolderSubFolder(int userId, int folderId, int targetFolderId);
+        Task<ValidationResult> ValidateIsFolderSubFolder(int userId, int folderId, int targetFolderId, CancellationToken cancellationToken);
 
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">The ID of the user who should own the item.</param>
         /// <param name="itemType">Optional. The type of the item to check for (e.g., "file" or "folder").</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>
-        Task<ValidationResult> ValidateItemExistsAsync(int itemId, int userId, string? itemType = null);
+        Task<ValidationResult> ValidateItemExistsAsync(int itemId, int userId, CancellationToken cancellationToken, string? itemType = null);
 
         /// <summary>
         /// Asynchronously validates a list of item IDs, ensuring all exist and belong to the user.
@@ -87,7 +87,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="itemIds">A list of item IDs to validate.</param>
         /// <param name="userId">The ID of the user who should own all the items.</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>
-        Task<ValidationResult> ValidateItemIdsAsync(List<int> itemIds, int userId);
+        Task<ValidationResult> ValidateItemIdsAsync(List<int> itemIds, int userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Asynchronously checks if a given name is unique for a specific item type within a parent folder.
@@ -99,7 +99,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="excludeItemId">Optional. The ID of an item to exclude from the check, used during rename operations.</param>
         /// <param name="includeDeleted">Optional. Whether to include deleted items in the uniqueness check. Default is false.</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>
-        Task<ValidationResult> ValidateNameUniquenessAsync(string name, string itemType, int userId, int? parentId, int? excludeItemId = null, bool includeDeleted = false);
+        Task<ValidationResult> ValidateNameUniquenessAsync(string name, string itemType, int userId, int? parentId, CancellationToken cancellationToken, int? excludeItemId = null, bool includeDeleted = false);
 
 
         ValidationResult ValidateQuery(string query);

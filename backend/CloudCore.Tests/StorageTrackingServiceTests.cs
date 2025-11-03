@@ -22,7 +22,7 @@ namespace CloudCore.Tests
         private readonly DbContextOptions<CloudCoreDbContext> _options;
         private readonly StorageTrackingService _service;
         private readonly CloudCoreDbContext _context;
-        private readonly Mock<ISubscriptionService> _mockSubscriptionService = new();
+        private readonly Mock<ISubscriptionRepository> _mockSubscriptionService = new();
         private readonly Mock<ILogger<StorageTrackingService>> _loggerMock = new();
 
         public StorageTrackingServiceTests()

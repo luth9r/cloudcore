@@ -30,7 +30,7 @@ namespace CloudCore.Services.Implementations
             var totalDeletedCount = 0;
             var thresholdDate = DateTime.UtcNow.AddDays(RETENTION_DAYS);
 
-            var expiredItemIds = await _itemDataService.GetExpiredItemIdsAsync(thresholdDate);
+            var expiredItemIds = await _itemDataService.GetExpiredItemIdsAsync(thresholdDate, CancellationToken.None);
 
             if (expiredItemIds.Count == 0)
             {
@@ -53,7 +53,7 @@ namespace CloudCore.Services.Implementations
         {
             _logger.LogInformation("Processing a batch of {BatchSize} items.", batchIds.Count);
 
-            var itemsToDelete = await _itemDataService.GetDeletedItemsByIdsAsync(batchIds);
+            var itemsToDelete = await _itemDataService.GetDeletedItemsByIdsAsync(batchIds, CancellationToken.None);
 
             var orderedItemsToDelete = itemsToDelete
                 .OrderBy(i => i.Type == "folder")
@@ -63,7 +63,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                var deletedDbCount = await _itemDataService.DeleteItemsByIdsAsync(batchIds);
+                var deletedDbCount = await _itemDataService.DeleteItemsByIdsAsync(batchIds, CancellationToken.None);
                 _logger.LogInformation("Successfully deleted {DbCount} records from DB for this batch.", deletedDbCount);
                 return deletedDbCount;
             }
@@ -82,7 +82,7 @@ namespace CloudCore.Services.Implementations
                     string? itemPath = null;
                     if (item.Type == "folder")
                     {
-                        itemPath = await _itemDataService.GetFolderPathAsync(item);
+                        itemPath = await _itemDataService.GetFolderPathAsync(item, CancellationToken.None);
                     }
 
                     _itemStorageService.DeleteItemPhysically(item, itemPath);

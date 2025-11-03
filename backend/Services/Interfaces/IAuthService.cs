@@ -18,15 +18,17 @@ public interface IAuthService
     /// Authenticates a user with username and password
     /// </summary>
     /// <param name="request">Login request containing username and password credentials</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>Authentication response with JWT token and user information, or null if authentication fails</returns>
-    Task<AuthResponse?> LoginAsync(LoginRequest request);
+    Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Registers a new user in the system
     /// </summary>
     /// <param name="request">Registration request containing new user data</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>Authentication response with JWT token and created user information, or null if registration fails</returns>
-    Task<AuthResponse?> RegisterAsync(RegisterRequest request);
+    Task<AuthResponse?> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken);
 
     #endregion
 
@@ -51,23 +53,26 @@ public interface IAuthService
     /// Confirms user email address using verification token received via email
     /// </summary>
     /// <param name="token">Email verification JWT token sent to user</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>Fresh JWT authentication token if successful, null if token is invalid or expired</returns>
-    Task<string?> ConfirmEmailAndGenerateTokenAsync(string token);
+    Task<string?> ConfirmEmailAndGenerateTokenAsync(string token, CancellationToken cancellationToken);
 
     /// <summary>
     /// Sends a password reset email with a secure reset link to user's email address
     /// </summary>
     /// <param name="email">Email address for password reset request</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>True if reset email is successfully queued for sending</returns>
-    Task<bool> SendPasswordResetEmailAsync(string email);
+    Task<bool> SendPasswordResetEmailAsync(string email, CancellationToken cancellationToken);
 
     /// <summary>
     /// Resets user password using a valid password reset token
     /// </summary>
     /// <param name="token">Password reset JWT token received in email</param>
     /// <param name="newPassword">New password for the user account</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>True if password is successfully reset, false if token is invalid or expired</returns>
-    Task<bool> ResetPasswordAsync(string token, string newPassword);
+    Task<bool> ResetPasswordAsync(string token, string newPassword, CancellationToken cancellationToken);
 
     #endregion
 

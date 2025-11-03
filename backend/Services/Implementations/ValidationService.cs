@@ -158,11 +158,11 @@ namespace CloudCore.Services.Implementations
             return ValidationResult.Success();
         }
 
-        public async Task<ValidationResult> ValidateItemExistsAsync(int itemId, int userId, string? itemType = null)
+        public async Task<ValidationResult> ValidateItemExistsAsync(int itemId, int userId, CancellationToken cancellationToken, string? itemType = null)
         {
             _logger.LogInformation("Validating existence of item {ItemId} of type {ItemType} for user {UserId}", itemId, itemType ?? "any", userId);
 
-            var exists = await _itemRepository.ItemExistsAsync(itemId, userId, itemType);
+            var exists = await _itemRepository.ItemExistsAsync(itemId, userId, cancellationToken, itemType: itemType);
 
             if (!exists)
             {
@@ -180,7 +180,7 @@ namespace CloudCore.Services.Implementations
             return ValidationResult.Success();
         }
 
-        public async Task<ValidationResult> ValidateItemIdsAsync(List<int> itemIds, int userId)
+        public async Task<ValidationResult> ValidateItemIdsAsync(List<int> itemIds, int userId, CancellationToken cancellationToken)
         {
             if (itemIds == null || itemIds.Count == 0)
             {
@@ -191,7 +191,7 @@ namespace CloudCore.Services.Implementations
                 return ValidationResult.Failure("Too many items selected (max 100)", ErrorCodes.TOO_MANY_FILES);
             }
 
-            var existingItemsCount = await _itemRepository.CountExistingItemsAsync(itemIds, userId);
+            var existingItemsCount = await _itemRepository.CountExistingItemsAsync(itemIds, userId, cancellationToken);
 
             if (existingItemsCount != itemIds.Count)
             {
@@ -203,11 +203,11 @@ namespace CloudCore.Services.Implementations
             return ValidationResult.Success();
         }
 
-        public async Task<ValidationResult> ValidateNameUniquenessAsync(string name, string itemType, int userId, int? parentId, int? excludeItemId = null, bool includeDeleted = false)
+        public async Task<ValidationResult> ValidateNameUniquenessAsync(string name, string itemType, int userId, int? parentId, CancellationToken cancellationToken, int? excludeItemId = null, bool includeDeleted = false)
         {
             _logger.LogInformation("Validating name uniqueness for '{Name}' of type '{ItemType}' for user {UserId}", name, itemType, userId);
 
-            var isDuplicate = await _itemRepository.DoesItemExistByNameAsync(name, itemType, userId, parentId, excludeItemId, includeDeleted);
+            var isDuplicate = await _itemRepository.DoesItemExistByNameAsync(name, itemType, userId, parentId, cancellationToken, excludeItemId, includeDeleted);
 
             if (isDuplicate)
             {
@@ -273,7 +273,7 @@ namespace CloudCore.Services.Implementations
 
         }
 
-        public async Task<ValidationResult> ValidateIsFolderSubFolder(int userId, int folderId, int targetFolderId)
+        public async Task<ValidationResult> ValidateIsFolderSubFolder(int userId, int folderId, int targetFolderId, CancellationToken cancellationToken)
         {
             if (folderId == targetFolderId)
             {
@@ -281,7 +281,7 @@ namespace CloudCore.Services.Implementations
                 return ValidationResult.Failure("Folder cannot be moved into itself", ErrorCodes.INVALID_OPERATION);
             }
 
-            var isSubFolder = await _itemRepository.IsFolderSubFolderAsync(userId, folderId, targetFolderId);
+            var isSubFolder = await _itemRepository.IsFolderSubFolderAsync(userId, folderId, targetFolderId, cancellationToken);
 
             if (isSubFolder)
             {

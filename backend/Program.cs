@@ -29,6 +29,9 @@ namespace CloudCore
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .Filter.ByExcluding(logEvent =>
+                    logEvent.Exception is TaskCanceledException ||
+                    logEvent.Exception is OperationCanceledException)
                 .WriteTo.Console()
                 .WriteTo.File(
                     "logs/cloudCore.txt",
@@ -62,7 +65,7 @@ namespace CloudCore
 
                 Log.Information("Database connection configured for {Host}:{Port}/{Database}", host, port, database);
 
-                var connectionString = $"Server={host};Port={port};Database={database};Uid={user};Pwd={password};";
+                var connectionString = $"Server=localhost;Port={port};Database={database};Uid={user};Pwd={password};";
 
 
                 // Create web
@@ -72,6 +75,9 @@ namespace CloudCore
 
                 // Add db context (in case of multiple use of context, context factory provided)
                 builder.Services.AddDbContextFactory<CloudCoreDbContext>(options => options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+                builder.Services.AddDbContext<CloudCoreDbContext>(options => options.UseMySql(connectionString,
+                    ServerVersion.AutoDetect(connectionString)));
 
 
                 builder.Services.Configure<FormOptions>(options =>
@@ -90,9 +96,9 @@ namespace CloudCore
                 builder.Services.AddScoped<IZipArchiveService, ZipArchiveService>();
                 builder.Services.AddScoped<IValidationService, ValidationService>();
                 builder.Services.AddScoped<IItemApplication, ItemApplication>();
-                builder.Services.AddScoped<IItemRepository, DbRepository>();
-                builder.Services.AddScoped<ISubscriptionService, DbRepository>();
-                builder.Services.AddScoped<IUserRepository, DbRepository>();
+                builder.Services.AddScoped<IItemRepository, ItemRepository>();
+                builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+                builder.Services.AddScoped<IUserRepository, UserRepository>();
                 builder.Services.AddScoped<ITrashCleanupService, TrashCleanupService>();
                 builder.Services.AddScoped<IItemManagerService, ItemManagerService>();
                 builder.Services.AddScoped<IStorageCalculationService, StorageCalculationService>();
@@ -238,6 +244,19 @@ namespace CloudCore
                     app.UseSwaggerUI();
                 }
 
+                app.UseSerilogRequestLogging(options =>
+            {
+                options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+                options.GetLevel = (httpContext, elapsed, ex) => ex != null
+                    ? LogEventLevel.Error
+                    : elapsed > 1000 ? LogEventLevel.Warning : LogEventLevel.Information;
+                options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+                {
+                    diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+                    diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+                    diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+                };
+            });
 
                 // activate
                 app.UseCors("AllowAll");

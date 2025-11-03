@@ -14,12 +14,12 @@ namespace CloudCore.Services.Implementations
     {
         private readonly IDbContextFactory<CloudCoreDbContext> _dbContextFactory;
         private readonly ILogger<TeamspaceService> _logger;
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly ISubscriptionRepository _subscriptionService;
 
         public TeamspaceService(
             IDbContextFactory<CloudCoreDbContext> dbContextFactory,
             ILogger<TeamspaceService> logger,
-            ISubscriptionService subscriptionService)
+            ISubscriptionRepository subscriptionService)
         {
             _dbContextFactory = dbContextFactory;
             _logger = logger;

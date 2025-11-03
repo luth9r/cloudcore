@@ -38,17 +38,28 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user.</param>
         /// <param name="parentId">Parent directory ID (null for root level).</param>
         /// <param name="queryParams">Query parameters for pagination, sorting, and search.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Paginated list of items.</returns>
         /// <response code="200">Returns the paginated list of items.</response>
         /// <response code="401">Unauthorized - user must be authenticated.</response>
         [HttpGet]
         [ProducesResponseType(typeof(PaginatedResponse<ItemResponse>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<Item>>> GetItemsAsync([FromRoute] int userId, [FromQuery] int? parentId, [FromQuery] QueryParameters queryParams)
+        public async Task<ActionResult<IEnumerable<Item>>> GetItemsAsync([FromRoute] int userId, [FromQuery] int? parentId, [FromQuery] QueryParameters queryParams, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Fetching items for User ID: {UserId}, Parent ID: {ParentId}, Page: {Page}, Page Size: {PageSize}, Search Query: {SearchQuery}.", userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SearchQuery);
 
-            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SortBy, queryParams.SortDir, searchQuery: queryParams.SearchQuery);
+                for (int i = 0; i < 100; i++)
+                {
+                    await Task.Delay(1000, cancellationToken);
+                    _logger.LogInformation("Processing item {Index}", i);
+                }
+
+                _logger.LogInformation("Operation completed");
+                return new List<Item>();
+
+
+            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, cancellationToken, queryParams.SortBy, queryParams.SortDir, searchQuery: queryParams.SearchQuery);
 
             _logger.LogInformation("Successfully fetched {ItemCount} items for User ID: {UserId}.", result.Data?.Count(), userId);
             return Ok(new PaginatedResponse<ItemResponse>
@@ -64,17 +75,18 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="folderId">The ID of the folder.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Full path string of the folder.</returns>
         /// <response code="200">Returns the folder path.</response>
         /// <response code="404">Folder not found.</response>
         [HttpGet("folder/path/{folderId}")]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<string>> GetFolderPath([FromRoute] int userId, [FromRoute] int folderId)
+        public async Task<ActionResult<string>> GetFolderPath([FromRoute] int userId, [FromRoute] int folderId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Fetching folder path for User ID: {UserId}, Folder ID: {FolderId}", userId, folderId);
-            string folderPath = await _itemApplication.GetBreadcrumbPathAsync(userId, folderId, "folder");
+            string folderPath = await _itemApplication.GetBreadcrumbPathAsync(userId, folderId, "folder", cancellationToken);
 
 
             return Ok(folderPath);
@@ -85,15 +97,16 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="parentFolderId">Parent folder ID (null for root).</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>List of child folders.</returns>
         /// <response code="200">Returns list of folders.</response>
         [HttpGet("folders")]
         [ProducesResponseType(typeof(IEnumerable<ItemResponse>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetСhildFoldersAsync([FromRoute] int userId, [FromQuery] int? parentFolderId = null)
+        public async Task<IActionResult> GetСhildFoldersAsync([FromRoute] int userId, CancellationToken cancellationToken, [FromQuery] int? parentFolderId = null)
         {
             _logger.LogInformation("Fetching child folders for User ID: {UserId}, Parent Folder ID: {FolderId}", userId, parentFolderId);
 
-            var childrenAsyncEnumerable = _itemApplication.GetDirectChildrenAsync(userId, parentFolderId, "folder");
+            var childrenAsyncEnumerable = _itemApplication.GetDirectChildrenAsync(userId, parentFolderId, cancellationToken, "folder");
 
             if (childrenAsyncEnumerable == null)
             {
@@ -102,7 +115,7 @@ namespace CloudCore.Controllers
 
             var result = await childrenAsyncEnumerable
                 .Where(item => item != null)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (result.Count == 0)
             {
@@ -122,15 +135,16 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user.</param>
         /// <param name="name">Name of the item to search for.</param>
         /// <param name="parentId">Parent folder ID (null for root).</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>The matching item.</returns>
         /// <response code="200">Returns the item.</response>
         /// <response code="404">Item not found.</response>
         [HttpGet("get/name")]
         [ProducesResponseType(typeof(ItemResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetItemByNameAsync([FromRoute] int userId, [FromQuery][Required] string name, [FromQuery] int? parentId)
+        public async Task<IActionResult> GetItemByNameAsync([FromRoute] int userId, [FromQuery][Required] string name, [FromQuery] int? parentId, CancellationToken cancellationToken)
         {
-            var item = await _itemApplication.GetItemByNameAsync(userId, name, parentId);
+            var item = await _itemApplication.GetItemByNameAsync(userId, name, parentId, cancellationToken);
 
             if (item == null)
                 return NotFound(new { message = "Item not found." });
@@ -145,22 +159,23 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user.</param>
         /// <param name="parentId">Parent folder ID (optional).</param>
         /// <param name="queryParams">Query parameters for pagination and sorting.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Paginated list of deleted items.</returns>
         /// <response code="200">Returns paginated trash items.</response>
         [HttpGet("trash")]
         [ProducesResponseType(typeof(PaginatedResponse<ItemResponse>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<Item>>> GetDeletedItemsAsync([FromRoute] int userId, int? parentId, [FromQuery] QueryParameters queryParams)
+        public async Task<ActionResult<IEnumerable<Item>>> GetDeletedItemsAsync([FromRoute] int userId, int? parentId, [FromQuery] QueryParameters queryParams, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Fetching items for User ID: {UserId}, Parent ID: {ParentId}, Page: {Page}, Page Size: {PageSize}, Search Query: {SearchQuery}.", userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SearchQuery);
 
-            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SortBy, queryParams.SortDir, true, searchQuery: queryParams.SearchQuery);
+            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, cancellationToken ,queryParams.SortBy, queryParams.SortDir, true, searchQuery: queryParams.SearchQuery);
 
-            _logger.LogInformation("Successfully fetched {ItemCount} trash items for User ID: {UserId}.", result.Data.Count(), userId);
+            _logger.LogInformation("Successfully fetched {ItemCount} trash items for User ID: {UserId}.", result.Data?.Count(), userId);
 
             return Ok(new PaginatedResponse<ItemResponse>
             {
-                Data = result.Data.Select(i => i.ToResponseDto()),
+                Data = result.Data?.Select(i => i.ToResponseDto()),
                 Pagination = result.Pagination
             });
         }
@@ -174,6 +189,7 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user who owns the folder.</param>
         /// <param name="folderId">The ID of the folder to download.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>ZIP file containing all folder contents.</returns>
         /// <response code="200">Returns the folder as a ZIP file.</response>
         /// <response code="404">Folder not found.</response>
@@ -186,11 +202,11 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Produces("application/zip")]
-        public async Task<IActionResult> DownloadFolderAsync([FromRoute] int userId, [Required] int folderId)
+        public async Task<IActionResult> DownloadFolderAsync([FromRoute] int userId, [Required] int folderId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} initiated download for Folder ID: {FolderId}.", userId, folderId);
-            var (archiveStream, fileName) = await _itemApplication.DownloadFolderAsync(userId, folderId);
+            var (archiveStream, fileName) = await _itemApplication.DownloadFolderAsync(userId, folderId, cancellationToken);
 
             _logger.LogInformation("Successfully created archive '{FileName}' for User ID: {UserId}.", fileName, userId);
             return File(archiveStream, "application/zip", fileName);
@@ -201,18 +217,19 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user who owns the file.</param>
         /// <param name="fileId">The ID of the file to download.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>File stream with appropriate content type.</returns>
         /// <response code="200">Returns the file content.</response>
         /// <response code="404">File not found.</response>
         [HttpGet("{fileId}/download")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DownloadFileAsync([FromRoute] int userId, [FromRoute] int fileId)
+        public async Task<IActionResult> DownloadFileAsync([FromRoute] int userId, [FromRoute] int fileId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} initiated download for File ID: {FileId}.", userId, fileId);
 
-            var fileResult = await _itemApplication.DownloadFileAsync(userId, fileId);
+            var fileResult = await _itemApplication.DownloadFileAsync(userId, fileId, cancellationToken);
 
             _logger.LogInformation("Serving file '{FileName}' for User ID: {UserId}.", fileResult.FileName, userId);
 
@@ -224,6 +241,7 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="itemsId">List of item IDs to include in the archive.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>ZIP file containing all selected items.</returns>
         /// <response code="200">Returns the archive file.</response>
         /// <response code="400">Invalid item IDs or validation failed.</response>
@@ -237,11 +255,11 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Produces("application/zip")]
-        public async Task<IActionResult> DownloadMultipleItemsAsZipAsync([FromRoute] int userId, [FromBody] List<int> itemsId)
+        public async Task<IActionResult> DownloadMultipleItemsAsZipAsync([FromRoute] int userId, [FromBody] List<int> itemsId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} initiated download for {ItemCount} items.", userId, itemsId.Count);
-            var (archiveStream, fileName) = await _itemApplication.DownloadMultipleItemsAsZipAsync(userId, itemsId);
+            var (archiveStream, fileName) = await _itemApplication.DownloadMultipleItemsAsZipAsync(userId, itemsId, cancellationToken);
             _logger.LogInformation("Successfully created archive '{FileName}' with multiple items for User ID: {UserId}.", fileName, userId);
 
 
@@ -256,6 +274,7 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user who owns the item.</param>
         /// <param name="itemId">The ID of the item to rename.</param>
         /// <param name="newName">The new name for the item (max 250 characters).</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result of the rename operation.</returns>
         /// <response code="200">Item renamed successfully.</response>
         /// <response code="400">Invalid name or request.</response>
@@ -271,11 +290,11 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> RenameItemAsync([FromRoute] int userId, [FromRoute] int itemId, [StringLength(250)][FromBody] string newName)
+        public async Task<IActionResult> RenameItemAsync([FromRoute] int userId, [FromRoute] int itemId, [StringLength(250)][FromBody] string newName, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} attempting to rename Item ID: {ItemId} to '{NewName}'.", userId, itemId, newName);
-            var result = await _itemApplication.RenameItemAsync(userId, itemId, newName);
+            var result = await _itemApplication.RenameItemAsync(userId, itemId, newName, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -307,6 +326,7 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user.</param>
         /// <param name="itemId">The ID of the item to move.</param>
         /// <param name="targetId">Target folder ID (null for root).</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result of the move operation.</returns>
         /// <response code="200">Item moved successfully.</response>
         /// <response code="400">Invalid target or circular reference detected.</response>
@@ -317,10 +337,10 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(MoveResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(MoveResult), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(MoveResult), StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> MoveItemAsync([FromRoute] int userId, [FromRoute] int itemId, [FromRoute] int? targetId)
+        public async Task<IActionResult> MoveItemAsync([FromRoute] int userId, [FromRoute] int itemId, [FromRoute] int? targetId, CancellationToken cancellationToken)
         {
             _logger.LogInformation("User {UserId} attempting to move Item ID: {ItemID} to Target ID: {TargetId}", userId, itemId, targetId);
-            var result = await _itemApplication.MoveItemAsync(userId, itemId, targetId);
+            var result = await _itemApplication.MoveItemAsync(userId, itemId, targetId, cancellationToken);
             if (!result.IsSuccess)
             {
                 _logger.LogWarning("Failed to move Item ID: {ItemId} for User ID: {UserId}. Reason: {ErrorMessage} (Code: {ErrorCode}).", itemId, userId, result.Message, result.ErrorCode);
@@ -348,6 +368,7 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="itemId">The ID of the item to restore.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result of the restore operation.</returns>
         /// <response code="200">Item restored successfully.</response>
         /// <response code="400">Restoration failed (parent deleted, storage limit, etc.).</response>
@@ -356,11 +377,11 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(RestoreResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(RestoreResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(RestoreResult), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> RestoreItemAsync([FromRoute] int userId, [FromRoute] int itemId)
+        public async Task<IActionResult> RestoreItemAsync([FromRoute] int userId, [FromRoute] int itemId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} attempting to restore Item ID: {ItemId}.", userId, itemId);
-            var result = await _itemApplication.RestoreItemAsync(userId, itemId);
+            var result = await _itemApplication.RestoreItemAsync(userId, itemId, cancellationToken);
 
             if (!result.IsSuccess)
                 _logger.LogWarning("Failed to restore Item ID: {ItemId} for User ID: {UserId}. Reason: {ErrorMessage} (Code: {ErrorCode}).", itemId, userId, result.Message, result.ErrorCode);
@@ -380,19 +401,20 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="itemId">The ID of the item to delete.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result of the delete operation.</returns>
         /// <response code="200">Item moved to trash successfully.</response>
         /// <response code="404">Item not found.</response>
         [HttpDelete("{itemId}/delete")]
         [ProducesResponseType(typeof(DeleteResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(DeleteResult), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> SoftDeleteItemAsync([FromRoute] int userId, [FromRoute] int itemId)
+        public async Task<IActionResult> SoftDeleteItemAsync([FromRoute] int userId, [FromRoute] int itemId, CancellationToken cancellationToken)
         {
 
 
             _logger.LogInformation("User {UserId} attempting to delete Item ID: {ItemId}.", userId, itemId);
 
-            var result = await _itemApplication.SoftDeleteItemAsync(userId, itemId);
+            var result = await _itemApplication.SoftDeleteItemAsync(userId, itemId, cancellationToken);
             _logger.LogInformation("Item ID: {ItemId} successfully moved to trash for User ID: {UserId}.", itemId, userId);
 
             return Ok(result);
@@ -404,6 +426,7 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="itemId">The ID of the item to permanently delete.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result of the permanent deletion.</returns>
         /// <response code="200">Item permanently deleted.</response>
         /// <response code="404">Item not found.</response>
@@ -413,9 +436,9 @@ namespace CloudCore.Controllers
         [HttpDelete("{itemId}/delete/permanently")]
         [ProducesResponseType(typeof(DeleteResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(DeleteResult), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DeletePermanently([FromRoute] int userId, [FromRoute] int itemId)
+        public async Task<IActionResult> DeletePermanently([FromRoute] int userId, [FromRoute] int itemId, CancellationToken cancellationToken)
         {
-            var result = await _itemApplication.DeleteItemPermanentlyAsync(userId, itemId);
+            var result = await _itemApplication.DeleteItemPermanentlyAsync(userId, itemId, cancellationToken);
 
             _logger.LogInformation("Item ID: {ItemId} permanently deleted for User ID: {UserId}.", itemId, userId);
 
@@ -430,6 +453,7 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="request">Folder creation request with name and optional parent folder ID.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>ы
         /// <returns>Result with new folder details.</returns>
         /// <response code="200">Folder created successfully.</response>
         /// <response code="400">Invalid folder name or parent not found.</response>
@@ -447,12 +471,12 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(CreateFolderResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> CreateFolderAsync([FromRoute] int userId, [FromBody] FolderCreateRequest request)
+        public async Task<IActionResult> CreateFolderAsync([FromRoute] int userId, [FromBody] FolderCreateRequest request, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("User {UserId} attempting to create folder '{FolderName}' in Parent ID: {ParentId}.", userId, request.Name, request.ParentId);
 
-            var result = await _itemApplication.CreateFolderAsync(userId, request);
+            var result = await _itemApplication.CreateFolderAsync(userId, request, cancellationToken);
             if (!result.IsSuccess)
             {
                 _logger.LogWarning("Failed to create folder '{FolderName}' for User ID: {UserId}. Reason: {ErrorMessage} (Code: {ErrorCode}).", request.Name, userId, result.Message, result.ErrorCode);
@@ -482,6 +506,7 @@ namespace CloudCore.Controllers
         /// <param name="userId">The ID of the user.</param>
         /// <param name="file">The file to upload.</param>
         /// <param name="parentId">Optional parent folder ID (null for root).</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Result with uploaded file details.</returns>
         /// <response code="200">File uploaded successfully.</response>
         /// <response code="400">Invalid file, parent not found, or storage limit exceeded.</response>
@@ -494,12 +519,12 @@ namespace CloudCore.Controllers
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> UploadFileAsync([FromRoute] int userId, [Required] IFormFile file, [FromForm] int? parentId = null)
+        public async Task<IActionResult> UploadFileAsync([FromRoute] int userId, [Required] IFormFile file, CancellationToken cancellationToken, [FromForm] int? parentId = null)
         {
 
             _logger.LogInformation("User {UserId} attempting to upload file '{FileName}' to Parent ID: {ParentId}.", userId, file.FileName, parentId);
 
-            var result = await _itemApplication.UploadFileAsync(userId, file, parentId);
+            var result = await _itemApplication.UploadFileAsync(userId, file, cancellationToken, parentId);
             if (!result.IsSuccess)
             {
                 _logger.LogWarning("Failed to upload file '{FileName}' for User ID: {UserId}. Reason: {ErrorMessage} (Code: {ErrorCode}).", file.FileName, userId, result.Message, result.ErrorCode);

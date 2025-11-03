@@ -48,10 +48,6 @@ namespace CloudCore.Services.Implementations
 
                 string htmlBody = template.Replace("{{ResetUrl}}", resetUrl);
 
-                // ✅ ДЕБАГ: перевіряємо після replace
-                _logger.LogInformation($"After replace contains placeholder: {htmlBody.Contains("{{ResetUrl}}")}");
-                _logger.LogInformation($"After replace contains actual URL: {htmlBody.Contains(resetUrl)}");
-
                 await _fluentEmail
                     .To(toEmail)
                     .Subject(subject)

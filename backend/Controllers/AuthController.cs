@@ -30,12 +30,13 @@ public class AuthController : ControllerBase
     /// User login endpoint
     /// </summary>
     /// <param name="request">Login credentials</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>JWT token and user info or Unauthorized</returns>
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Login attempt for user: {request.Username}.");
-        var result = await _authService.LoginAsync(request);
+        var result = await _authService.LoginAsync(request, cancellationToken);
 
         if (result == null)
         {
@@ -50,12 +51,13 @@ public class AuthController : ControllerBase
     /// User registration endpoint
     /// </summary>
     /// <param name="request">Registration details</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>JWT token and user info or BadRequest</returns>
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Register attempt for user: {request.Username}, (Email: {request.Email}).");
-        var result = await _authService.RegisterAsync(request);
+        var result = await _authService.RegisterAsync(request, cancellationToken);
 
         if (result == null)
         {
@@ -70,13 +72,14 @@ public class AuthController : ControllerBase
     /// Email verification endpoint
     /// </summary>
     /// <param name="token">JWT token from email link</param>
+    /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
     /// <returns>Result of verification</returns>
     [HttpPost("verify-email")]
-    public async Task<ActionResult> VerifyEmail([FromBody] TokenRequest token)
+    public async Task<ActionResult> VerifyEmail([FromBody] TokenRequest token, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Email verification attempt.");
         _logger.LogInformation($"Verification token: {token.Token}");
-        var jwtToken = await _authService.ConfirmEmailAndGenerateTokenAsync(token.Token);
+        var jwtToken = await _authService.ConfirmEmailAndGenerateTokenAsync(token.Token, cancellationToken);
         if (jwtToken == null)
         {
             _logger.LogWarning("Email verification failed or token invalid.");
@@ -94,11 +97,11 @@ public class AuthController : ControllerBase
     /// Request password reset email
     /// </summary>
     [HttpPost("forgot-password")]
-    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation($"Password reset requested for: {request.Email}");
 
-        await _authService.SendPasswordResetEmailAsync(request.Email);
+        await _authService.SendPasswordResetEmailAsync(request.Email, cancellationToken);
 
         return Ok();
     }
@@ -107,11 +110,11 @@ public class AuthController : ControllerBase
     /// Reset password with token
     /// </summary>
     [HttpPost("reset-password")]
-    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Password reset attempt");
 
-        var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword);
+        var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
 
         if (!result)
         {

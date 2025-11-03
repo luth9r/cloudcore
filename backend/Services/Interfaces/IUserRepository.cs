@@ -13,22 +13,25 @@ namespace CloudCore.Services.Interfaces
         /// Retrieves a user by their unique ID
         /// </summary>
         /// <param name="id">User ID to search for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>User object if found, null otherwise</returns>
-        Task<User?> GetUserByIdAsync(int id);
+        Task<User?> GetUserByIdAsync(int id, CancellationToken cancellationToken);
 
         /// <summary>
         /// Retrieves a user by their username
         /// </summary>
         /// <param name="username">Username to search for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>User object if found, null otherwise</returns>
-        Task<User?> GetUserByNameAsync(string username);
+        Task<User?> GetUserByNameAsync(string username, CancellationToken cancellationToken);
 
         /// <summary>
         /// Retrieves a user by their email address
         /// </summary>
         /// <param name="email">Email address to search for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>User object if found, null otherwise</returns>
-        Task<User?> GetUserByEmailAsync(string email);
+        Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken);
 
         #endregion
 
@@ -39,15 +42,17 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="username">Username to check</param>
         /// <param name="email">Email address to check</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>True if user with either username or email exists, false otherwise</returns>
-        Task<bool> CheckUserExistsAsync(string username, string email);
+        Task<bool> CheckUserExistsAsync(string username, string email, CancellationToken cancellationToken);
 
         /// <summary>
         /// Checks if a user exists with the specified email address
         /// </summary>
         /// <param name="email">Email address to check</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>True if user with email exists, false otherwise</returns>
-        Task<bool> CheckUserExistsAsync(string email);
+        Task<bool> CheckUserExistsAsync(string email, CancellationToken cancellationToken);
 
         #endregion
 
@@ -57,14 +62,16 @@ namespace CloudCore.Services.Interfaces
         /// Adds a new user to the database
         /// </summary>
         /// <param name="user">User entity to add</param>
-        Task AddUserAsync(User user);
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
+        Task AddUserAsync(User user, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates an existing user in the database
         /// </summary>
         /// <param name="user">User entity with updated data</param>
+        /// <param name="cancellationToken">Token to cancel the operation if the client disconnects</param>
         /// <returns>True if update successful, false otherwise</returns>
-        Task<bool> UpdateUserAsync(User user);
+        Task<bool> UpdateUserAsync(User user, CancellationToken cancellationToken);
 
         #endregion
     }

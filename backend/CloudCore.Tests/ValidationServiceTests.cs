@@ -250,7 +250,7 @@ public class ValidationServiceTests
     {
         // Arrange
         _mockItemRepository
-            .Setup(r => r.ItemExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Setup(r => r.ItemExistsAsync(It.IsAny<int>(), It.IsAny<int>(), itemType: It.IsAny<string>()))
             .ReturnsAsync(true);
 
         // Act
@@ -268,7 +268,7 @@ public class ValidationServiceTests
     {
         // Arrange
         _mockItemRepository
-            .Setup(r => r.ItemExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Setup(r => r.ItemExistsAsync(It.IsAny<int>(), It.IsAny<int>(), itemType: It.IsAny<string>()))
             .ReturnsAsync(false);
 
         // Act
@@ -367,7 +367,7 @@ public class ValidationServiceTests
                 It.IsAny<string>(),
                 It.IsAny<int>(),
                 It.IsAny<int?>(),
-                It.IsAny<int?>(),
+                TODO, It.IsAny<int?>(),
                 It.IsAny<bool>()))
             .ReturnsAsync(false);
 
@@ -388,7 +388,7 @@ public class ValidationServiceTests
                 It.IsAny<string>(),
                 It.IsAny<int>(),
                 It.IsAny<int?>(),
-                It.IsAny<int?>(),
+                TODO, It.IsAny<int?>(),
                 It.IsAny<bool>()))
             .ReturnsAsync(true);
 

@@ -6,6 +6,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CloudCore.Services.Interfaces;
+using System.Threading;
 
 namespace CloudCore.Controllers;
 
@@ -24,9 +25,9 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{userId}/change-username")]
-    public async Task<ActionResult> ChangeUsername(int userId, [FromBody] ChangeUsernameRequest request)
+    public async Task<ActionResult> ChangeUsername(int userId, [FromBody] ChangeUsernameRequest request, CancellationToken cancellationToken)
     {
-        var success = await _userService.ChangeUsernameAsync(userId, request.NewUsername);
+        var success = await _userService.ChangeUsernameAsync(userId, request.NewUsername, cancellationToken);
         if (!success)
             return BadRequest(ApiResponse.Error("Username already taken", ErrorCodes.USERNAME_EXISTS));
 
@@ -34,23 +35,23 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{userId}/change-password")]
-    public async Task<IActionResult> ChangePassword(int userId, [FromBody] ChangePasswordRequest request)
+    public async Task<IActionResult> ChangePassword(int userId, [FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+        var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, cancellationToken);
         if (!success)
             return BadRequest(ApiResponse.Error("Invalid current password", "INVALID_PASSWORD"));
         return Ok(ApiResponse.Ok("Password changed successfully"));
     }
 
     [HttpPost("{userId}/request-email-change")]
-    public async Task<ActionResult> RequestEmailChange(int userId, [FromBody] ChangeEmailRequest request)
+    public async Task<ActionResult> RequestEmailChange(int userId, [FromBody] ChangeEmailRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         _logger.LogInformation("RequestEmailChange called for user {UserId} with email {Email}", userId, request.NewEmail);
 
-        var success = await _userService.SendEmailVerificationAsync(userId, request.NewEmail);
+        var success = await _userService.SendEmailVerificationAsync(userId, request.NewEmail, cancellationToken);
         if (!success)
         {
             _logger.LogWarning("Email change failed for user {UserId} with email {Email}", userId, request.NewEmail);
@@ -63,9 +64,9 @@ public class UserController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("confirm-email-change")]
-    public async Task<ActionResult> ConfirmEmailChange([FromBody] TokenRequest token)
+    public async Task<ActionResult> ConfirmEmailChange([FromBody] TokenRequest token, CancellationToken cancellationToken)
     {
-        var success = await _userService.ConfirmEmailChangeAsync(token.Token);
+        var success = await _userService.ConfirmEmailChangeAsync(token.Token, cancellationToken);
         if (!success)
             return BadRequest(ApiResponse.Error("Invalid or expired token", "INVALID_TOKEN"));
 
@@ -74,7 +75,7 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpPost("{userId}/upgrade-plan")]
-    public async Task<ActionResult> UpgradePlan([FromRoute] int userId, [FromBody] UpgradePlanRequest upgradePlanRequest)
+    public async Task<ActionResult> UpgradePlan([FromRoute] int userId, [FromBody] UpgradePlanRequest upgradePlanRequest, CancellationToken cancellationToken)
     {
         if (upgradePlanRequest.NewPlan == null || !Enum.IsDefined(typeof(SubscriptionPlan), upgradePlanRequest.NewPlan))
         {
@@ -82,7 +83,7 @@ public class UserController : ControllerBase
             return BadRequest(ApiResponse.Error("Invalid subscription plan value"));
         }
 
-        var success = await _userService.UpgradePlanAsync(userId, upgradePlanRequest.NewPlan);
+        var success = await _userService.UpgradePlanAsync(userId, upgradePlanRequest.NewPlan, cancellationToken);
         if (!success)
             return BadRequest(ApiResponse.Error("Error upgrading plan"));
         return Ok(ApiResponse.Ok("Plan upgraded successfully"));

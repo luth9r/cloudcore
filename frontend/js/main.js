@@ -2709,7 +2709,7 @@ class CloudCoreDrive {
                     ? this.i18n.t('deletingItem', { filename: items[0].name }) || `Deleting "${items[0].name}"...`
                     : this.i18n.t('deletingItems', { count }) || `Deleting ${count} items...`;
 
-            this.notifications.info(deletingMessage, { duration: 0 });
+            this.notifications.info(deletingMessage);
 
             const result = await this.api.bulkDeletePermanentlyItems(this.currentUserId, itemIds, {
                 concurrency: 5,

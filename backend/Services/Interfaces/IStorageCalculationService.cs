@@ -11,23 +11,26 @@ namespace CloudCore.Services.Interfaces
         /// Calculates the total storage used by a user across all their items.
         /// </summary>
         /// <param name="userId">The user ID to calculate storage for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Total storage in bytes</returns>
-        Task<long> GetUserTotalStorageAsync(int userId);
+        Task<long> GetUserTotalStorageAsync(int userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Calculates the size of a specific folder and all its contents.
         /// </summary>
         /// <param name="userId">The user ID who owns the folder</param>
         /// <param name="folderId">The folder ID to calculate (null for root)</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Tuple of (total size in bytes, file count)</returns>
-        Task<(long totalSize, int fileCount)> CalculateFolderSizeAsync(int userId, int? folderId);
+        Task<(long totalSize, int fileCount)> CalculateFolderSizeAsync(int userId, int? folderId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Calculates the size of multiple mixed items (files and folders).
         /// </summary>
         /// <param name="userId">The user ID who owns the items</param>
         /// <param name="items">Collection of items to calculate size for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Tuple of (total size in bytes, file count)</returns>
-        Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items);
+        Task<(long totalSize, int fileCount)> CalculateMultipleItemsSizeAsync(int userId, IAsyncEnumerable<Item> items, CancellationToken cancellationToken);
     }
 }

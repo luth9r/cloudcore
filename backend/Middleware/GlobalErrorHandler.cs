@@ -12,14 +12,30 @@ namespace CloudCore.Middleware
     public class GlobalErrorHandler
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<GlobalErrorHandler> _logger;
 
-        public GlobalErrorHandler(RequestDelegate next) => _next = next;
-
+        public GlobalErrorHandler(RequestDelegate next, ILogger<GlobalErrorHandler> logger)
+        {
+            _next = next;
+            _logger = logger;
+        }
         public async Task InvokeAsync(HttpContext context)
         {
             try
             {
                 await _next(context);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                _logger.LogInformation("Client cancelled request: {Method} {Path}", context.Request.Method, context.Request.Path);
+                context.Response.StatusCode = 499; // Client Closed Request
+                return;
+            }
+            catch (TaskCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                _logger.LogInformation("Client cancelled request (TaskCanceled): {Method} {Path}", context.Request.Method, context.Request.Path);
+                context.Response.StatusCode = 499; // Client Closed Request
+                return;
             }
             catch (Exception ex)
             {

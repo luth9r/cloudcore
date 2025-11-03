@@ -46,6 +46,7 @@ namespace CloudCore.Services.Implementations
             int? parentId,
             int page,
             int pageSize,
+            CancellationToken cancellationToken,
             string? sortBy,
             string? sortDir,
             string? searchQuery = null)
@@ -58,11 +59,12 @@ namespace CloudCore.Services.Implementations
                 parentId,
                 page,
                 pageSize,
+                cancellationToken,
                 sortBy,
                 sortDir,
                 IsTrashFolder: false,
-                searchQuery,
-                teamspaceId);
+                searchQuery: searchQuery,
+                teamspaceId: teamspaceId);
 
             int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
@@ -86,6 +88,7 @@ namespace CloudCore.Services.Implementations
             int teamspaceId,
             int page,
             int pageSize,
+            CancellationToken cancellationToken,
             string? sortBy,
             string? sortDir)
         {
@@ -97,11 +100,12 @@ namespace CloudCore.Services.Implementations
                 null,
                 page,
                 pageSize,
+                cancellationToken,
                 sortBy,
                 sortDir,
                 IsTrashFolder: true,
-                null,
-                teamspaceId);
+                searchQuery: null,
+                teamspaceId: teamspaceId);
 
             int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
@@ -124,12 +128,13 @@ namespace CloudCore.Services.Implementations
             int userId,
             int teamspaceId,
             int itemId,
-            string? type)
+            string? type,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Fetching teamspace item. TeamspaceId={TeamspaceId}, ItemId={ItemId}",
                 teamspaceId, itemId);
 
-            var item = await _itemRepository.GetItemAsync(userId, itemId, type);
+            var item = await _itemRepository.GetItemAsync(itemId, userId, type, cancellationToken);
 
             // Verify item belongs to this teamspace
             if (item?.TeamspaceId != teamspaceId)
@@ -145,9 +150,10 @@ namespace CloudCore.Services.Implementations
         public async Task<string> GetTeamspaceBreadcrumbPathAsync(
             int userId,
             int teamspaceId,
-            int folderId)
+            int folderId,
+            CancellationToken cancellationToken)
         {
-            var folder = await GetTeamspaceItemAsync(userId, teamspaceId, folderId, "folder");
+            var folder = await GetTeamspaceItemAsync(userId, teamspaceId, folderId, "folder", cancellationToken);
 
             if (folder == null)
             {
@@ -156,7 +162,7 @@ namespace CloudCore.Services.Implementations
                 throw new FileNotFoundException(ErrorCodes.FOLDER_NOT_FOUND);
             }
 
-            return await _itemRepository.GetBreadcrumbPathAsync(folder);
+            return await _itemRepository.GetBreadcrumbPathAsync(folder, cancellationToken);
         }
 
         #endregion
@@ -167,6 +173,7 @@ namespace CloudCore.Services.Implementations
                 int userId,
                 int teamspaceId,
                 IFormFile file,
+                CancellationToken cancellationToken,
                 int? parentId = null)
         {
             _logger.LogInformation("Uploading file to teamspace. TeamspaceId={TeamspaceId}, FileName={FileName}",
@@ -202,7 +209,7 @@ namespace CloudCore.Services.Implementations
 
             if (parentId.HasValue)
             {
-                var parentFolder = await _itemRepository.GetItemAsync(userId, parentId.Value, "folder");
+                var parentFolder = await _itemRepository.GetItemAsync(parentId.Value, userId, "folder", cancellationToken);
 
                 if (parentFolder == null || parentFolder.TeamspaceId != teamspaceId)
                 {
@@ -214,7 +221,7 @@ namespace CloudCore.Services.Implementations
                     };
                 }
 
-                targetDirectory = await _itemRepository.GetFolderPathAsync(parentFolder);
+                targetDirectory = await _itemRepository.GetFolderPathAsync(parentFolder, cancellationToken);
             }
 
             // Check name uniqueness in teamspace
@@ -223,6 +230,7 @@ namespace CloudCore.Services.Implementations
                 "file",
                 userId,
                 parentId,
+                cancellationToken,
                 excludeItemId: null,
                 includeDeleted: true);
 
@@ -246,7 +254,7 @@ namespace CloudCore.Services.Implementations
 
                 createdItem.TeamspaceId = teamspaceId;
 
-                await _itemRepository.AddItemInTranscationAsync(createdItem);
+                await _itemRepository.AddItemInTranscationAsync(createdItem, cancellationToken);
 
                 await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, file.Length);
 
@@ -278,7 +286,8 @@ namespace CloudCore.Services.Implementations
         public async Task<CreateFolderResult> CreateFolderInTeamspaceAsync(
             int userId,
             int teamspaceId,
-            FolderCreateRequest request)
+            FolderCreateRequest request,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Creating folder in teamspace. TeamspaceId={TeamspaceId}, FolderName={FolderName}",
                 teamspaceId, request.Name);
@@ -298,7 +307,7 @@ namespace CloudCore.Services.Implementations
             // Validate parent folder if specified
             if (request.ParentId.HasValue)
             {
-                var parentFolder = await _itemRepository.GetItemAsync(userId, request.ParentId.Value, "folder");
+                var parentFolder = await _itemRepository.GetItemAsync(request.ParentId.Value, userId, "folder", cancellationToken);
 
                 if (parentFolder == null || parentFolder.TeamspaceId != teamspaceId)
                 {
@@ -317,6 +326,7 @@ namespace CloudCore.Services.Implementations
                 "folder",
                 userId,
                 request.ParentId,
+                cancellationToken,
                 excludeItemId: null,
                 includeDeleted: true);
 
@@ -344,15 +354,15 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await _itemRepository.AddItemInTranscationAsync(folder);
+                await _itemRepository.AddItemInTranscationAsync(folder, cancellationToken);
 
-                string relativeFolderPath = await _itemRepository.GetFolderPathAsync(folder);
+                string relativeFolderPath = await _itemRepository.GetFolderPathAsync(folder, cancellationToken);
                 bool created = _itemStorageService.TryCreateFolder(userId, relativeFolderPath);
 
                 if (!created)
                 {
                     _logger.LogError("Failed to create physical folder. Path={Path}", relativeFolderPath);
-                    await _itemRepository.DeleteItemPermanentlyAsync(folder);
+                    await _itemRepository.DeleteItemPermanentlyAsync(folder, cancellationToken);
 
                     return new CreateFolderResult
                     {
@@ -388,7 +398,8 @@ namespace CloudCore.Services.Implementations
             int userId,
             int teamspaceId,
             int itemId,
-            string newName)
+            string newName,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Renaming teamspace item. TeamspaceId={TeamspaceId}, ItemId={ItemId}, NewName={NewName}",
                 teamspaceId, itemId, newName);
@@ -406,7 +417,7 @@ namespace CloudCore.Services.Implementations
             }
 
             // Get the item
-            var item = await GetTeamspaceItemAsync(userId, teamspaceId, itemId, null);
+            var item = await GetTeamspaceItemAsync(userId, teamspaceId, itemId, null, cancellationToken);
             if (item == null)
             {
                 return new RenameResult
@@ -423,6 +434,7 @@ namespace CloudCore.Services.Implementations
                 item.Type,
                 userId,
                 item.ParentId,
+                cancellationToken,
                 excludeItemId: itemId,
                 includeDeleted: true);
 
@@ -441,9 +453,9 @@ namespace CloudCore.Services.Implementations
 
             if (item.Type == "folder")
             {
-                childItemsAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId)
+                childItemsAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken)
                                                  .Prepend(item); // parent folder
-                folderPath = await _itemRepository.GetFolderPathAsync(item);
+                folderPath = await _itemRepository.GetFolderPathAsync(item, cancellationToken);
                 folderPath = Path.Combine(_itemStorageService.GetUserStoragePath(userId), folderPath);
                 _logger.LogInformation("Folder Path is {FolderPath}", folderPath);
             }
@@ -456,7 +468,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await _itemRepository.UpdateItemsInTransactionAsync(itemsToRenameAsync);
+                await _itemRepository.UpdateItemsInTransactionAsync(itemsToRenameAsync, cancellationToken);
 
                 _logger.LogInformation("Item renamed in teamspace successfully. ItemId={ItemId}, NewName={NewName}",
                     itemId, newName);
@@ -484,12 +496,13 @@ namespace CloudCore.Services.Implementations
         public async Task<DeleteResult> SoftDeleteTeamspaceItemAsync(
                 int userId,
                 int teamspaceId,
-                int itemId)
+                int itemId,
+                CancellationToken cancellationToken)
         {
             _logger.LogInformation("Soft deleting teamspace item. TeamspaceId={TeamspaceId}, ItemId={ItemId}",
                 teamspaceId, itemId);
 
-            var item = await GetTeamspaceItemAsync(userId, teamspaceId, itemId, null);
+            var item = await GetTeamspaceItemAsync(userId, teamspaceId, itemId, null, cancellationToken);
             if (item == null)
             {
                 return new DeleteResult
@@ -504,7 +517,7 @@ namespace CloudCore.Services.Implementations
 
             if (item.Type == "folder")
             {
-                itemsToDeleteAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId)
+                itemsToDeleteAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken)
                                                    .Prepend(item);
             }
             else
@@ -516,7 +529,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
+                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync, cancellationToken);
 
                 long totalBytes = 0;
                 await foreach (var i in itemsToDeleteAsync)
@@ -550,12 +563,13 @@ namespace CloudCore.Services.Implementations
         public async Task<RestoreResult> RestoreTeamspaceItemAsync(
                 int userId,
                 int teamspaceId,
-                int itemId)
+                int itemId,
+                CancellationToken cancellationToken)
         {
             _logger.LogInformation("Restoring teamspace item. TeamspaceId={TeamspaceId}, ItemId={ItemId}",
                 teamspaceId, itemId);
 
-            var item = await _itemRepository.GetDeletedItemAsync(userId, itemId);
+            var item = await _itemRepository.GetDeletedItemAsync(userId, itemId, cancellationToken);
 
             if (item == null || item.TeamspaceId != teamspaceId)
             {
@@ -572,6 +586,7 @@ namespace CloudCore.Services.Implementations
                 item.Type,
                 userId,
                 item.ParentId,
+                cancellationToken,
                 includeDeleted: false);
 
             if (!uniquenessValidation.IsValid)
@@ -588,7 +603,7 @@ namespace CloudCore.Services.Implementations
 
             if (item.Type == "folder")
             {
-                itemsToRestoreAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId)
+                itemsToRestoreAsync = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken)
                                                     .Prepend(item);
             }
             else
@@ -622,7 +637,7 @@ namespace CloudCore.Services.Implementations
 
             try
             {
-                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
+                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync, cancellationToken);
 
                 await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, totalBytes);
 
@@ -653,12 +668,13 @@ namespace CloudCore.Services.Implementations
         public async Task<FileDownloadResult> DownloadTeamspaceFileAsync(
             int userId,
             int teamspaceId,
-            int fileId)
+            int fileId,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Downloading teamspace file. TeamspaceId={TeamspaceId}, FileId={FileId}",
                 teamspaceId, fileId);
 
-            var file = await GetTeamspaceItemAsync(userId, teamspaceId, fileId, "file");
+            var file = await GetTeamspaceItemAsync(userId, teamspaceId, fileId, "file", cancellationToken);
 
             if (file == null || file.IsDeleted == true)
             {
@@ -686,12 +702,13 @@ namespace CloudCore.Services.Implementations
         public async Task<(Stream archiveStream, string fileName)> DownloadTeamspaceFolderAsync(
             int userId,
             int teamspaceId,
-            int folderId)
+            int folderId,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Downloading teamspace folder. TeamspaceId={TeamspaceId}, FolderId={FolderId}",
                 teamspaceId, folderId);
 
-            var folder = await GetTeamspaceItemAsync(userId, teamspaceId, folderId, "folder");
+            var folder = await GetTeamspaceItemAsync(userId, teamspaceId, folderId, "folder", cancellationToken);
 
             if (folder == null || folder.IsDeleted == true)
             {
@@ -701,7 +718,8 @@ namespace CloudCore.Services.Implementations
             var archiveStream = await _zipArchiveService.CreateFolderArchiveAsync(
                 userId,
                 folderId,
-                folder.Name);
+                folder.Name,
+                cancellationToken);
 
             return (archiveStream, $"{folder.Name}.zip");
         }
@@ -709,12 +727,13 @@ namespace CloudCore.Services.Implementations
         public async Task<(Stream archiveStream, string fileName)> DownloadMultipleTeamspaceItemsAsync(
             int userId,
             int teamspaceId,
-            List<int> itemIds)
+            List<int> itemIds,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Downloading multiple teamspace items. TeamspaceId={TeamspaceId}, Count={Count}",
                 teamspaceId, itemIds.Count);
 
-            var itemsStream = _itemRepository.GetItemsByIdsForUserAsync(userId, itemIds).Where(i => i.TeamspaceId == teamspaceId && i.IsDeleted == false);
+            var itemsStream = _itemRepository.GetItemsByIdsForUserAsync(userId, itemIds, cancellationToken).Where(i => i.TeamspaceId == teamspaceId && i.IsDeleted == false);
 
             // Verify all items belong to the teamspace
             if (!await itemsStream.AnyAsync())
@@ -722,7 +741,7 @@ namespace CloudCore.Services.Implementations
                 throw new FileNotFoundException(ErrorCodes.ITEM_NOT_FOUND);
             }
 
-            var archiveStream = await _zipArchiveService.CreateMultipleItemArchiveAsync(userId, itemsStream);
+            var archiveStream = await _zipArchiveService.CreateMultipleItemArchiveAsync(userId, itemsStream, cancellationToken);
             var fileName = $"teamspace_items_{DateTime.UtcNow:yyyyMMdd_HHmmss}.zip";
 
             return (archiveStream, fileName);
@@ -735,17 +754,18 @@ namespace CloudCore.Services.Implementations
         public async Task<bool> VerifyTeamspacePermissionAsync(
             int userId,
             int teamspaceId,
-            string requiredPermission)
+            string requiredPermission,
+            CancellationToken cancellationToken)
         {
             return await _teamspaceService.HasPermissionAsync(userId, teamspaceId, requiredPermission);
         }
 
-        public async Task<bool> VerifyItemBelongsToTeamspaceAsync(int itemId, int teamspaceId)
+        public async Task<bool> VerifyItemBelongsToTeamspaceAsync(int itemId, int teamspaceId, CancellationToken cancellationToken)
         {
-            var item = await _itemRepository.GetItemAsync(0, itemId, null);
+            var item = await _itemRepository.GetItemAsync(itemId, 0, null, cancellationToken);
             return item?.TeamspaceId == teamspaceId;
         }
-        public async Task<bool> CheckStorageLimitAsync(int teamspaceId, long fileSizeBytes)
+        public async Task<bool> CheckStorageLimitAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             return await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, fileSizeBytes); //TODO: Clear the wrapper
         }
