@@ -14,20 +14,20 @@ namespace CloudCore.Services.Implementations
             _logger = logger;
         }
 
-        public async Task SendEmailVerificationAsync(string toEmail, string verifyUrl, string subject)
+        public async Task SendEmailVerificationAsync(string toEmail, string verifyUrl, string subject, CancellationToken cancellationToken)
         {
             try
             {
                 var contentRoot = AppContext.BaseDirectory;
                 var templatePath = Path.Combine(contentRoot, "EmailTemplates", "VerifyEmail.cshtml");
-                string template = File.ReadAllText(templatePath);
+                string template = await File.ReadAllTextAsync(templatePath, cancellationToken);
                 string htmlBody = template.Replace("{{VerifyUrl}}", verifyUrl);
 
                 await _fluentEmail
                     .To(toEmail)
                     .Subject(subject)
                     .Body(htmlBody, isHtml: true)
-                    .SendAsync();
+                    .SendAsync(cancellationToken);
             }
             catch (Exception ex)
             {
@@ -36,13 +36,13 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task SendPasswordResetAsync(string toEmail, string resetUrl, string subject)
+        public async Task SendPasswordResetAsync(string toEmail, string resetUrl, string subject, CancellationToken cancellationToken)
         {
             try
             {
                 var contentRoot = AppContext.BaseDirectory;
                 var templatePath = Path.Combine(contentRoot, "EmailTemplates", "ResetPassword.cshtml");
-                string template = File.ReadAllText(templatePath);
+                string template = await File.ReadAllTextAsync(templatePath, cancellationToken);
                 _logger.LogInformation($"Template length: {template.Length}");
                 _logger.LogInformation($"Contains placeholder: {template.Contains("{{ResetUrl}}")}");
 
@@ -52,7 +52,7 @@ namespace CloudCore.Services.Implementations
                     .To(toEmail)
                     .Subject(subject)
                     .Body(htmlBody, isHtml: true)
-                    .SendAsync();
+                    .SendAsync(cancellationToken);
             }
             catch (Exception ex)
             {

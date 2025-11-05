@@ -1,11 +1,10 @@
-﻿using CloudCore.Domain.Entities;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
-using CloudCore.Data.Context;
 
 namespace CloudCore.Services.Implementations
 {

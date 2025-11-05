@@ -1,17 +1,9 @@
-﻿using System.IO;
-using System.Linq;
-using System.Threading;
-using CloudCore.Common.Models;
-using CloudCore.Contracts.Responses;
+﻿using CloudCore.Common.Models;
 using CloudCore.Data.Context;
-using CloudCore.Domain.Entities;
-using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
-using NaturalSort.Extension;
-using Sprache;
 
-namespace CloudCore.Services.Implementations
+namespace CloudCore.Services.Implementations.Repositories
 {
     public class SubscriptionRepository : ISubscriptionRepository
     {

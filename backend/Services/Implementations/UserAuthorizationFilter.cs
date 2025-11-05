@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using CloudCore.Common.Errors;
 using CloudCore.Contracts.Responses;
-using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

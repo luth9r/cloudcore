@@ -1,5 +1,4 @@
 ﻿using CloudCore.Domain.Entities;
-using Microsoft.AspNetCore.Mvc;
 
 namespace CloudCore.Services.Interfaces
 {

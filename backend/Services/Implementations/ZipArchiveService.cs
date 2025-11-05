@@ -1,9 +1,7 @@
-﻿using System.IO;
-using System.IO.Compression;
-using CloudCore.Data.Context;
+﻿using System.IO.Compression;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using CloudCore.Services.Interfaces.IRepositories;
 
 
 namespace CloudCore.Services.Implementations

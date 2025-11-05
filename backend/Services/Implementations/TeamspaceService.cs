@@ -4,8 +4,8 @@ using CloudCore.Contracts.Responses;
 using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using static CloudCore.Contracts.Responses.TeamspaceResultResponses;
 
 namespace CloudCore.Services.Implementations

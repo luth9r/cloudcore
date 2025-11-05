@@ -14,29 +14,33 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="userId">User ID</param>
         /// <param name="fileSizeBytes">Size of file being added in bytes</param>
-        Task AddToPersonalStorageAsync(int userId, long fileSizeBytes);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task AddToPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates user's personal storage usage when a file is removed
         /// </summary>
         /// <param name="userId">User ID</param>
         /// <param name="fileSizeBytes">Size of file being removed in bytes</param>
-        Task RemoveFromPersonalStorageAsync(int userId, long fileSizeBytes);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task RemoveFromPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Checks if adding a file would exceed user's personal storage limit
         /// </summary>
         /// <param name="userId">User ID</param>
         /// <param name="fileSizeBytes">Size of file to add in bytes</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if within limit, false if would exceed</returns>
-        Task<bool> CanAddToPersonalStorageAsync(int userId, long fileSizeBytes);
+        Task<bool> CanAddToPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets current personal storage usage and limit for a user
         /// </summary>
         /// <param name="userId">User ID</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Tuple of (usedMb, limitMb)</returns>
-        Task<(long usedMb, long limitMb)> GetPersonalStorageInfoAsync(int userId);
+        Task<(long usedMb, long limitMb)> GetPersonalStorageInfoAsync(int userId, CancellationToken cancellationToken);
 
         #endregion
 
@@ -47,29 +51,33 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID</param>
         /// <param name="fileSizeBytes">Size of file being added in bytes</param>
-        Task AddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task AddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates teamspace storage usage when a file is removed
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID</param>
         /// <param name="fileSizeBytes">Size of file being removed in bytes</param>
-        Task RemoveFromTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task RemoveFromTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Checks if adding a file would exceed teamspace storage limit
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID</param>
         /// <param name="fileSizeBytes">Size of file to add in bytes</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if within limit, false if would exceed</returns>
-        Task<bool> CanAddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes);
+        Task<bool> CanAddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets current teamspace storage usage and limit
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Tuple of (usedMb, limitMb)</returns>
-        Task<(long usedMb, long limitMb)> GetTeamspaceStorageInfoAsync(int teamspaceId);
+        Task<(long usedMb, long limitMb)> GetTeamspaceStorageInfoAsync(int teamspaceId, CancellationToken cancellationToken);
 
         #endregion
 
@@ -81,20 +89,23 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">User ID</param>
         /// <param name="items">Items being added/removed</param>
         /// <param name="isAdding">True if adding, false if removing</param>
-        Task UpdateStorageForItemsAsync(int userId, IAsyncEnumerable<Item> items, bool isAdding);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task UpdateStorageForItemsAsync(int userId, IAsyncEnumerable<Item> items, bool isAdding, CancellationToken cancellationToken);
 
         /// <summary>
         /// Recalculates and updates actual storage usage from database
         /// Useful for fixing inconsistencies
         /// </summary>
         /// <param name="userId">User ID to recalculate for</param>
-        Task RecalculatePersonalStorageAsync(int userId);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task RecalculatePersonalStorageAsync(int userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Recalculates and updates actual teamspace storage usage from database
         /// </summary>
         /// <param name="teamspaceId">Teamspace ID to recalculate for</param>
-        Task RecalculateTeamspaceStorageAsync(int teamspaceId);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task RecalculateTeamspaceStorageAsync(int teamspaceId, CancellationToken cancellationToken);
 
         #endregion
     }

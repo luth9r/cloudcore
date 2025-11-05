@@ -1,5 +1,4 @@
-﻿using CloudCore.Contracts.Responses;
-using CloudCore.Domain.Entities;
+﻿using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
 
 namespace CloudCore.Services.Implementations

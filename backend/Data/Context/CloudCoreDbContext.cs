@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using CloudCore.Domain.Entities;
+﻿using CloudCore.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
 
 namespace CloudCore.Data.Context;
 

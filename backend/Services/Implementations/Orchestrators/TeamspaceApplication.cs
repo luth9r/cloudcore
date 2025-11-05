@@ -3,9 +3,11 @@ using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
+using CloudCore.Services.Interfaces.Orchestrators;
 using static CloudCore.Contracts.Responses.ItemResultResponses;
 
-namespace CloudCore.Services.Implementations
+namespace CloudCore.Services.Implementations.Orchestrators
 {
     public class TeamspaceApplication : ITeamspaceApplication
     {
@@ -190,10 +192,10 @@ namespace CloudCore.Services.Implementations
                 };
             }
 
-            var canUpload = await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, file.Length);
+            var canUpload = await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, file.Length, cancellationToken);
             if (!canUpload)
             {
-                var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId);
+                var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId, cancellationToken);
                 long fileSizeMb = file.Length / (1024 * 1024);
 
                 return new UploadResult
@@ -256,7 +258,7 @@ namespace CloudCore.Services.Implementations
 
                 await _itemRepository.AddItemInTranscationAsync(createdItem, cancellationToken);
 
-                await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, file.Length);
+                await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, file.Length, cancellationToken);
 
                 _logger.LogInformation("File uploaded to teamspace successfully. ItemId={ItemId}, TeamspaceId={TeamspaceId}",
                     createdItem.Id, teamspaceId);
@@ -276,9 +278,7 @@ namespace CloudCore.Services.Implementations
 
                 // Cleanup orphaned file
                 if (createdItem != null && !string.IsNullOrEmpty(createdItem.FilePath))
-                {
                     _itemStorageService.DeleteItemPhysically(createdItem);
-                }
                 throw;
             }
         }
@@ -537,7 +537,7 @@ namespace CloudCore.Services.Implementations
                     if (i.Type == "file")
                         totalBytes += i.FileSize ?? 0;
                 }
-                await _storageTrackingService.RemoveFromTeamspaceStorageAsync(teamspaceId, totalBytes);
+                await _storageTrackingService.RemoveFromTeamspaceStorageAsync(teamspaceId, totalBytes, cancellationToken);
 
                 _logger.LogInformation("Item soft deleted in teamspace successfully. ItemId={ItemId}", itemId);
 
@@ -618,11 +618,11 @@ namespace CloudCore.Services.Implementations
                     totalBytes += i.FileSize ?? 0;
             }
 
-            var canRestore = await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, totalBytes);
+            var canRestore = await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, totalBytes, cancellationToken);
 
             if (!canRestore)
             {
-                var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId);
+                var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId, cancellationToken);
                 long restoreSizeMb = totalBytes / (1024 * 1024);
 
                 return new RestoreResult
@@ -639,7 +639,7 @@ namespace CloudCore.Services.Implementations
             {
                 await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync, cancellationToken);
 
-                await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, totalBytes);
+                await _storageTrackingService.AddToTeamspaceStorageAsync(teamspaceId, totalBytes, cancellationToken);
 
                 _logger.LogInformation("Item restored in teamspace successfully. ItemId={ItemId}", itemId);
 
@@ -677,9 +677,7 @@ namespace CloudCore.Services.Implementations
             var file = await GetTeamspaceItemAsync(userId, teamspaceId, fileId, "file", cancellationToken);
 
             if (file == null || file.IsDeleted == true)
-            {
                 throw new FileNotFoundException(ErrorCodes.FILE_NOT_FOUND);
-            }
 
             var fullPath = _itemStorageService.GetFileFullPath(userId, file.FilePath!);
 
@@ -711,9 +709,7 @@ namespace CloudCore.Services.Implementations
             var folder = await GetTeamspaceItemAsync(userId, teamspaceId, folderId, "folder", cancellationToken);
 
             if (folder == null || folder.IsDeleted == true)
-            {
                 throw new FileNotFoundException(ErrorCodes.FOLDER_NOT_FOUND);
-            }
 
             var archiveStream = await _zipArchiveService.CreateFolderArchiveAsync(
                 userId,
@@ -737,9 +733,7 @@ namespace CloudCore.Services.Implementations
 
             // Verify all items belong to the teamspace
             if (!await itemsStream.AnyAsync())
-            {
                 throw new FileNotFoundException(ErrorCodes.ITEM_NOT_FOUND);
-            }
 
             var archiveStream = await _zipArchiveService.CreateMultipleItemArchiveAsync(userId, itemsStream, cancellationToken);
             var fileName = $"teamspace_items_{DateTime.UtcNow:yyyyMMdd_HHmmss}.zip";
@@ -767,7 +761,7 @@ namespace CloudCore.Services.Implementations
         }
         public async Task<bool> CheckStorageLimitAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken)
         {
-            return await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, fileSizeBytes); //TODO: Clear the wrapper
+            return await _storageTrackingService.CanAddToTeamspaceStorageAsync(teamspaceId, fileSizeBytes, cancellationToken); //TODO: Clear the wrapper
         }
 
         #endregion

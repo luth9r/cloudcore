@@ -3,7 +3,7 @@ using CloudCore.Contracts.Responses;
 using CloudCore.Domain.Entities;
 using static CloudCore.Contracts.Responses.ItemResultResponses;
 
-namespace CloudCore.Services.Interfaces
+namespace CloudCore.Services.Interfaces.Orchestrators
 {
     /// <summary>
     /// Application service orchestrating teamspace item operations.

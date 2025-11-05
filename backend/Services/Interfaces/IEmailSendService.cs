@@ -8,7 +8,8 @@
         /// <param name="toEmail">Recipient email address</param>
         /// <param name="verifyUrl">Email verification URL containing the token</param>
         /// <param name="subject">Email subject line</param>
-        Task SendEmailVerificationAsync(string toEmail, string verifyUrl, string subject);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task SendEmailVerificationAsync(string toEmail, string verifyUrl, string subject, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a password reset link to the user's email address
@@ -16,6 +17,7 @@
         /// <param name="email">Recipient email address</param>
         /// <param name="resetUrl">Password reset URL containing the token</param>
         /// <param name="subject">Email subject line</param>
-        Task SendPasswordResetAsync(string email, string resetUrl, string subject);
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
+        Task SendPasswordResetAsync(string email, string resetUrl, string subject, CancellationToken cancellationToken);
     }
 }

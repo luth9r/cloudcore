@@ -1,6 +1,6 @@
 using CloudCore.Common.Models;
 
-namespace CloudCore.Services.Interfaces
+namespace CloudCore.Services.Interfaces.IRepositories
 {
     public interface ISubscriptionRepository
     {

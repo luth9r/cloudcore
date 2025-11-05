@@ -1,12 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 using CloudCore.Common.Errors;
 using CloudCore.Common.QueryParameters;
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
 using CloudCore.Domain.Entities;
 using CloudCore.Mappers;
-using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.Orchestrators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NaturalSort.Extension;
@@ -48,16 +47,6 @@ namespace CloudCore.Controllers
         {
 
             _logger.LogInformation("Fetching items for User ID: {UserId}, Parent ID: {ParentId}, Page: {Page}, Page Size: {PageSize}, Search Query: {SearchQuery}.", userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SearchQuery);
-
-                for (int i = 0; i < 100; i++)
-                {
-                    await Task.Delay(1000, cancellationToken);
-                    _logger.LogInformation("Processing item {Index}", i);
-                }
-
-                _logger.LogInformation("Operation completed");
-                return new List<Item>();
-
 
             var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, cancellationToken, queryParams.SortBy, queryParams.SortDir, searchQuery: queryParams.SearchQuery);
 
@@ -169,7 +158,7 @@ namespace CloudCore.Controllers
 
             _logger.LogInformation("Fetching items for User ID: {UserId}, Parent ID: {ParentId}, Page: {Page}, Page Size: {PageSize}, Search Query: {SearchQuery}.", userId, parentId, queryParams.Page, queryParams.PageSize, queryParams.SearchQuery);
 
-            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, cancellationToken ,queryParams.SortBy, queryParams.SortDir, true, searchQuery: queryParams.SearchQuery);
+            var result = await _itemApplication.GetItemsAsync(userId, parentId, queryParams.Page, queryParams.PageSize, cancellationToken, queryParams.SortBy, queryParams.SortDir, true, searchQuery: queryParams.SearchQuery);
 
             _logger.LogInformation("Successfully fetched {ItemCount} trash items for User ID: {UserId}.", result.Data?.Count(), userId);
 

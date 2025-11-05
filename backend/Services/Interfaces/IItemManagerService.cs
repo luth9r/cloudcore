@@ -1,5 +1,4 @@
 ﻿using CloudCore.Domain.Entities;
-using static CloudCore.Contracts.Responses.ItemResultResponses;
 
 namespace CloudCore.Services.Interfaces
 {

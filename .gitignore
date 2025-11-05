@@ -15,3 +15,4 @@ backend/CloudCore.Tests/coverage-report/
 backend/CloudCore.Tests/TestResults/
 /out
 /plantuml
+/backend/.editorconfig

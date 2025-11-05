@@ -2,11 +2,9 @@
 using CloudCore.Common.Models;
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
-using System.Security.Claims;
+using CloudCore.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CloudCore.Services.Interfaces;
-using System.Threading;
 
 namespace CloudCore.Controllers;
 

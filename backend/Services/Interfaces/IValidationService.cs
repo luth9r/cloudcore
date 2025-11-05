@@ -1,5 +1,4 @@
 ﻿using CloudCore.Common.Validation;
-using CloudCore.Data.Context;
 
 namespace CloudCore.Services.Interfaces
 {
@@ -67,6 +66,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="userId">The ID of the user who owns the folders.</param>
         /// <param name="folderId">The ID of the folder being moved.</param>
         /// <param name="targetFolderId">The ID of the destination folder.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>
         /// A ValidationResult indicating whether the move operation is valid.
         Task<ValidationResult> ValidateIsFolderSubFolder(int userId, int folderId, int targetFolderId, CancellationToken cancellationToken);
@@ -77,6 +77,7 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="itemId">The ID of the item to check.</param>
         /// <param name="userId">The ID of the user who should own the item.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <param name="itemType">Optional. The type of the item to check for (e.g., "file" or "folder").</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>
         Task<ValidationResult> ValidateItemExistsAsync(int itemId, int userId, CancellationToken cancellationToken, string? itemType = null);
@@ -86,6 +87,7 @@ namespace CloudCore.Services.Interfaces
         /// </summary>
         /// <param name="itemIds">A list of item IDs to validate.</param>
         /// <param name="userId">The ID of the user who should own all the items.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>
         Task<ValidationResult> ValidateItemIdsAsync(List<int> itemIds, int userId, CancellationToken cancellationToken);
 
@@ -96,6 +98,7 @@ namespace CloudCore.Services.Interfaces
         /// <param name="itemType">The type of the item (e.g., "file" or "folder").</param>
         /// <param name="userId">The ID of the user.</param>
         /// <param name="parentId">The ID of the parent folder where the item will reside. Null for the root directory.</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <param name="excludeItemId">Optional. The ID of an item to exclude from the check, used during rename operations.</param>
         /// <param name="includeDeleted">Optional. Whether to include deleted items in the uniqueness check. Default is false.</param>
         /// <returns>A Task representing the asynchronous operation, containing a ValidationResult.</returns>

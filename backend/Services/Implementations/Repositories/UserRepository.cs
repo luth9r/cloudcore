@@ -1,9 +1,9 @@
 ﻿using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
-using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace CloudCore.Services.Implementations
+namespace CloudCore.Services.Implementations.Repositories
 {
     public class UserRepository(CloudCoreDbContext context, ILogger<UserRepository> logger) : IUserRepository
     {

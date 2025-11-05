@@ -1,18 +1,17 @@
-﻿using System.Threading;
+﻿using System.Runtime.CompilerServices;
 using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
-using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using MySqlConnector;
 using NaturalSort.Extension;
 
-namespace CloudCore.Services.Implementations
+namespace CloudCore.Services.Implementations.Repositories
 {
     public class ItemRepository(IDbContextFactory<CloudCoreDbContext> dbContextFactory, ILogger<ItemRepository> logger) : IItemRepository
     {
 
-        public async IAsyncEnumerable<Item> GetAllChildItemsAsync(int userId, int parentId, CancellationToken cancellationToken, int maxDepth = 10000)
+        public async IAsyncEnumerable<Item> GetAllChildItemsAsync(int userId, int parentId, [EnumeratorCancellation] CancellationToken cancellationToken, int maxDepth = 10000)
         {
             var context = dbContextFactory.CreateDbContext();
             try
@@ -51,7 +50,7 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async IAsyncEnumerable<Item> GetDirectChildrenAsync(int userId, int? parentId, CancellationToken cancellationToken, string? itemType = null, bool includeDeleted = false)
+        public async IAsyncEnumerable<Item> GetDirectChildrenAsync(int userId, int? parentId,[EnumeratorCancellation] CancellationToken cancellationToken, string? itemType = null, bool includeDeleted = false)
         {
             await using var context = await dbContextFactory.CreateDbContextAsync();
 
@@ -60,14 +59,10 @@ namespace CloudCore.Services.Implementations
                 .Where(i => i.UserId == userId && i.ParentId == parentId);
 
             if (!string.IsNullOrEmpty(itemType))
-            {
                 query = query.Where(i => i.Type == itemType);
-            }
 
             if (includeDeleted == false)
-            {
                 query = query.Where(i => i.IsDeleted == false);
-            }
 
             await foreach (var item in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
             {
@@ -91,9 +86,7 @@ namespace CloudCore.Services.Implementations
                 query = query.Where(i => EF.Functions.Like(i.Name.ToLower(), $"%{searchQuery.ToLower()}%"));
             }
             if (teamspaceId.HasValue)
-            {
                 query = query.Where(i => i.TeamspaceId == teamspaceId);
-            }
 
 
             if (isTrashFolder == true)
@@ -106,9 +99,7 @@ namespace CloudCore.Services.Implementations
             else
             {
                 if (string.IsNullOrWhiteSpace(searchQuery))
-                {
                     query = query.Where(i => i.IsDeleted == false && i.ParentId == parentId);
-                }
                 else
                 {
                     query = query.Where(i => i.IsDeleted == false);
@@ -172,9 +163,7 @@ namespace CloudCore.Services.Implementations
                 .AsNoTracking()
                 .Where(i => i.Id == itemId && i.UserId == userId);
             if (!string.IsNullOrWhiteSpace(itemType))
-            {
                 query = query.Where(i => i.Type == itemType);
-            }
 
             logger.LogInformation("Fetching item. UserId={UserId}, ItemId={ItemId}", userId, itemId);
 
@@ -219,7 +208,7 @@ namespace CloudCore.Services.Implementations
             return item;
         }
 
-        public async IAsyncEnumerable<Item> GetItemsByIdsForUserAsync(int userId, List<int> itemsIds, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Item> GetItemsByIdsForUserAsync(int userId, List<int> itemsIds, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             if (itemsIds == null || itemsIds.Count == 0)
             {
@@ -318,9 +307,7 @@ namespace CloudCore.Services.Implementations
                 .Where(i => i.Name == name && i.Type == itemType && i.UserId == userId && i.ParentId == parentId && i.IsDeleted == false);
 
             if (excludeItemId.HasValue)
-            {
                 query = query.Where(i => i.Id != excludeItemId.Value);
-            }
 
             var isDuplicate = await query.AnyAsync(cancellationToken);
 
@@ -350,9 +337,7 @@ namespace CloudCore.Services.Implementations
                 .Where(i => i.Id == itemId && i.UserId == userId && i.IsDeleted == false);
 
             if (!string.IsNullOrEmpty(itemType))
-            {
                 query = query.Where(i => i.Type == itemType);
-            }
 
             var exists = await query.AnyAsync(cancellationToken);
 
@@ -393,14 +378,10 @@ namespace CloudCore.Services.Implementations
                 .Where(i => i.Name == name && i.Type == itemType && i.UserId == userId && i.ParentId == parentId);
 
             if (!includeDeleted)
-            {
                 query = query.Where(i => i.IsDeleted == false);
-            }
 
             if (excludeItemId.HasValue)
-            {
                 query = query.Where(i => i.Id != excludeItemId.Value);
-            }
 
             var exists = await query.AnyAsync(cancellationToken);
 

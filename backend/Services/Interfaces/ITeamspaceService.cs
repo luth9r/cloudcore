@@ -1,6 +1,5 @@
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
-using CloudCore.Domain.Entities;
 
 namespace CloudCore.Services.Interfaces
 {

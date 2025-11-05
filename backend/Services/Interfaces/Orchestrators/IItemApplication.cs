@@ -1,13 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-using CloudCore.Common.Errors;
-using CloudCore.Common.QueryParameters;
-using CloudCore.Contracts.Requests;
+﻿using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
 using CloudCore.Domain.Entities;
-using Microsoft.AspNetCore.Mvc;
 using static CloudCore.Contracts.Responses.ItemResultResponses;
 
-namespace CloudCore.Services.Interfaces
+namespace CloudCore.Services.Interfaces.Orchestrators
 {
     /// <summary>
     /// Defines the application service for managing user items (files and folders).

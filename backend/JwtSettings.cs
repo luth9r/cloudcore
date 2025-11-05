@@ -1,7 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-
-namespace CloudCore
+﻿namespace CloudCore
 {
     public class JwtSettings
     {

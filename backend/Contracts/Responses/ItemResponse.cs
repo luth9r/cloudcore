@@ -1,7 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using CloudCore.Domain.Entities;
-
-namespace CloudCore.Contracts.Responses
+﻿namespace CloudCore.Contracts.Responses
 {
     public class ItemResponse
     {

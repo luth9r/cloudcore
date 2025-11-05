@@ -1,10 +1,8 @@
 ﻿using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using CloudCore.Common.Errors;
 using CloudCore.Common.Validation;
-using CloudCore.Data.Context;
 using CloudCore.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using CloudCore.Services.Interfaces.IRepositories;
 
 namespace CloudCore.Services.Implementations
 {

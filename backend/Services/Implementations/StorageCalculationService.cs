@@ -1,5 +1,6 @@
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 
 namespace CloudCore.Services.Implementations
 {

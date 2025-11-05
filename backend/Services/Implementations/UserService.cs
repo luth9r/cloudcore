@@ -1,8 +1,7 @@
-﻿using CloudCore.Common.Models;
-using System.Security.Claims;
+﻿using System.Security.Claims;
+using CloudCore.Common.Models;
 using CloudCore.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using CloudCore.Data.Context;
+using CloudCore.Services.Interfaces.IRepositories;
 
 namespace CloudCore.Services.Implementations
 {
@@ -30,7 +29,7 @@ namespace CloudCore.Services.Implementations
         public async Task<bool> ChangeUsernameAsync(int userId, string newUsername, CancellationToken cancellationToken)
         {
             var existingUser = await _userRepository.GetUserByNameAsync(newUsername, cancellationToken);
-            if(existingUser != null)
+            if (existingUser != null)
                 return false;
 
             var user = await _userRepository.GetUserByIdAsync(userId, cancellationToken);
@@ -73,7 +72,8 @@ namespace CloudCore.Services.Implementations
                 await _emailSendService.SendEmailVerificationAsync(
                     user.Email,
                     verifyUrl,
-                    "Confirm your new email address");
+                    "Confirm your new email address",
+                    cancellationToken);
 
                 return true;
             }

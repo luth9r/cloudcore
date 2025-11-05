@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using CloudCore.Domain.Entities;
-
-namespace CloudCore.Domain.Entities;
+﻿namespace CloudCore.Domain.Entities;
 
 public partial class Item
 {

@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security.Claims;
+using CloudCore.Common.Errors;
+using CloudCore.Common.Validation;
 using CloudCore.Services.Implementations;
 using CloudCore.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Microsoft.AspNetCore.Routing;
-using CloudCore.Common.Errors;
 using Xunit;
-using CloudCore.Common.Validation;
 
 namespace CloudCore.Tests
 {

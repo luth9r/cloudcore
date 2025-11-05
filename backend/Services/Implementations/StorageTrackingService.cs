@@ -1,7 +1,7 @@
-using CloudCore.Common.Errors;
 using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace CloudCore.Services.Implementations
@@ -26,14 +26,14 @@ namespace CloudCore.Services.Implementations
 
         #region Personal Storage
 
-        public async Task AddToPersonalStorageAsync(int userId, long fileSizeBytes)
+        public async Task AddToPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var user = await context.Users.FindAsync(userId);
+                var user = await context.Users.FindAsync(new object[userId], cancellationToken);
                 if (user == null)
                 {
                     _logger.LogError("User {UserId} not found when adding storage", userId);
@@ -44,7 +44,7 @@ namespace CloudCore.Services.Implementations
                 user.PersonalStorageUsedMb = (user.PersonalStorageUsedMb ?? 0) + fileSizeMb;
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
 
                 _logger.LogInformation(
                     "Added {SizeMb}MB to user {UserId} storage. New total: {TotalMb}MB",
@@ -52,20 +52,20 @@ namespace CloudCore.Services.Implementations
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to add storage for user {UserId}", userId);
                 throw;
             }
         }
 
-        public async Task RemoveFromPersonalStorageAsync(int userId, long fileSizeBytes)
+        public async Task RemoveFromPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var user = await context.Users.FindAsync(userId);
+                var user = await context.Users.FindAsync(new object [userId], cancellationToken);
                 if (user == null)
                 {
                     _logger.LogWarning("User {UserId} not found when removing storage", userId);
@@ -76,7 +76,7 @@ namespace CloudCore.Services.Implementations
                 user.PersonalStorageUsedMb = Math.Max(0, (user.PersonalStorageUsedMb ?? 0) - fileSizeMb);
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
 
                 _logger.LogInformation(
                     "Removed {SizeMb}MB from user {UserId} storage. New total: {TotalMb}MB",
@@ -84,19 +84,19 @@ namespace CloudCore.Services.Implementations
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to remove storage for user {UserId}", userId);
                 throw;
             }
         }
 
-        public async Task<bool> CanAddToPersonalStorageAsync(int userId, long fileSizeBytes)
+        public async Task<bool> CanAddToPersonalStorageAsync(int userId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
             var user = await context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
             if (user == null)
             {
@@ -105,7 +105,7 @@ namespace CloudCore.Services.Implementations
             }
 
             // Get storage limit based on subscription
-            var limit = await GetPersonalStorageLimitAsync(userId);
+            var limit = await GetPersonalStorageLimitAsync(userId, cancellationToken);
 
             long fileSizeMb = fileSizeBytes / BYTES_PER_MB;
             long currentUsage = user.PersonalStorageUsedMb ?? 0;
@@ -120,13 +120,13 @@ namespace CloudCore.Services.Implementations
             return canAdd;
         }
 
-        public async Task<(long usedMb, long limitMb)> GetPersonalStorageInfoAsync(int userId)
+        public async Task<(long usedMb, long limitMb)> GetPersonalStorageInfoAsync(int userId, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
             var user = await context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
             if (user == null)
             {
@@ -134,17 +134,17 @@ namespace CloudCore.Services.Implementations
                 return (0, 0);
             }
 
-            var limit = await GetPersonalStorageLimitAsync(userId);
+            var limit = await GetPersonalStorageLimitAsync(userId, cancellationToken);
             return (user.PersonalStorageUsedMb ?? 0, limit);
         }
 
-        private async Task<long> GetPersonalStorageLimitAsync(int userId)
+        private async Task<long> GetPersonalStorageLimitAsync(int userId, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
             var user = await context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
             if (user == null)
                 return 0;
@@ -162,14 +162,14 @@ namespace CloudCore.Services.Implementations
 
         #region Teamspace Storage
 
-        public async Task AddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes)
+        public async Task AddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var teamspace = await context.Teamspaces.FindAsync(teamspaceId);
+                var teamspace = await context.Teamspaces.FindAsync(new object[teamspaceId], cancellationToken);
                 if (teamspace == null)
                 {
                     _logger.LogError("Teamspace {TeamspaceId} not found when adding storage", teamspaceId);
@@ -180,7 +180,7 @@ namespace CloudCore.Services.Implementations
                 teamspace.StorageUsedMb = (teamspace.StorageUsedMb ?? 0) + fileSizeMb;
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
 
                 _logger.LogInformation(
                     "Added {SizeMb}MB to teamspace {TeamspaceId} storage. New total: {TotalMb}MB",
@@ -188,20 +188,20 @@ namespace CloudCore.Services.Implementations
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to add storage for teamspace {TeamspaceId}", teamspaceId);
                 throw;
             }
         }
 
-        public async Task RemoveFromTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes)
+        public async Task RemoveFromTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var teamspace = await context.Teamspaces.FindAsync(teamspaceId);
+                var teamspace = await context.Teamspaces.FindAsync(new object[teamspaceId], cancellationToken);
                 if (teamspace == null)
                 {
                     _logger.LogWarning("Teamspace {TeamspaceId} not found when removing storage", teamspaceId);
@@ -212,7 +212,7 @@ namespace CloudCore.Services.Implementations
                 teamspace.StorageUsedMb = Math.Max(0, (teamspace.StorageUsedMb ?? 0) - fileSizeMb);
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
 
                 _logger.LogInformation(
                     "Removed {SizeMb}MB from teamspace {TeamspaceId} storage. New total: {TotalMb}MB",
@@ -220,19 +220,19 @@ namespace CloudCore.Services.Implementations
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to remove storage for teamspace {TeamspaceId}", teamspaceId);
                 throw;
             }
         }
 
-        public async Task<bool> CanAddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes)
+        public async Task<bool> CanAddToTeamspaceStorageAsync(int teamspaceId, long fileSizeBytes, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
             var teamspace = await context.Teamspaces
                 .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == teamspaceId);
+                .FirstOrDefaultAsync(t => t.Id == teamspaceId, cancellationToken);
 
             if (teamspace == null)
             {
@@ -253,13 +253,13 @@ namespace CloudCore.Services.Implementations
             return canAdd;
         }
 
-        public async Task<(long usedMb, long limitMb)> GetTeamspaceStorageInfoAsync(int teamspaceId)
+        public async Task<(long usedMb, long limitMb)> GetTeamspaceStorageInfoAsync(int teamspaceId, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
 
             var teamspace = await context.Teamspaces
                 .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == teamspaceId);
+                .FirstOrDefaultAsync(t => t.Id == teamspaceId, cancellationToken);
 
             if (teamspace == null)
             {
@@ -274,7 +274,7 @@ namespace CloudCore.Services.Implementations
 
         #region Batch Operations
 
-        public async Task UpdateStorageForItemsAsync(int userId, IAsyncEnumerable<Item> items, bool isAdding)
+        public async Task UpdateStorageForItemsAsync(int userId, IAsyncEnumerable<Item> items, bool isAdding, CancellationToken cancellationToken)
         {
             long totalBytes = 0;
             Item? firstItem = null;
@@ -300,28 +300,28 @@ namespace CloudCore.Services.Implementations
             {
                 // Teamspace items
                 if (isAdding)
-                    await AddToTeamspaceStorageAsync(firstItem.TeamspaceId.Value, totalBytes);
+                    await AddToTeamspaceStorageAsync(firstItem.TeamspaceId.Value, totalBytes, cancellationToken);
                 else
-                    await RemoveFromTeamspaceStorageAsync(firstItem.TeamspaceId.Value, totalBytes);
+                    await RemoveFromTeamspaceStorageAsync(firstItem.TeamspaceId.Value, totalBytes, cancellationToken);
             }
             else
             {
                 // Personal items
                 if (isAdding)
-                    await AddToPersonalStorageAsync(userId, totalBytes);
+                    await AddToPersonalStorageAsync(userId, totalBytes, cancellationToken);
                 else
-                    await RemoveFromPersonalStorageAsync(userId, totalBytes);
+                    await RemoveFromPersonalStorageAsync(userId, totalBytes, cancellationToken);
             }
         }
 
-        public async Task RecalculatePersonalStorageAsync(int userId)
+        public async Task RecalculatePersonalStorageAsync(int userId, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var user = await context.Users.FindAsync(userId);
+                var user = await context.Users.FindAsync(new object[userId], cancellationToken);
                 if (user == null)
                 {
                     _logger.LogWarning("User {UserId} not found for storage recalculation", userId);
@@ -333,7 +333,7 @@ namespace CloudCore.Services.Implementations
                                 i.TeamspaceId == null &&
                                 i.Type == "file" &&
                                 i.IsDeleted == false)
-                    .SumAsync(i => i.FileSize ?? 0);
+                    .SumAsync(i => i.FileSize ?? 0, cancellationToken);
 
                 long actualUsageMb = actualUsageBytes / BYTES_PER_MB;
 
@@ -344,24 +344,24 @@ namespace CloudCore.Services.Implementations
                 user.PersonalStorageUsedMb = actualUsageMb;
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to recalculate storage for user {UserId}", userId);
                 throw;
             }
         }
 
-        public async Task RecalculateTeamspaceStorageAsync(int teamspaceId)
+        public async Task RecalculateTeamspaceStorageAsync(int teamspaceId, CancellationToken cancellationToken)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            await using var transaction = await context.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var teamspace = await context.Teamspaces.FindAsync(teamspaceId);
+                var teamspace = await context.Teamspaces.FindAsync(new object[teamspaceId], cancellationToken);
                 if (teamspace == null)
                 {
                     _logger.LogWarning("Teamspace {TeamspaceId} not found for storage recalculation", teamspaceId);
@@ -372,7 +372,7 @@ namespace CloudCore.Services.Implementations
                     .Where(i => i.TeamspaceId == teamspaceId &&
                                 i.Type == "file" &&
                                 i.IsDeleted == false)
-                    .SumAsync(i => i.FileSize ?? 0);
+                    .SumAsync(i => i.FileSize ?? 0, cancellationToken);
 
                 long actualUsageMb = actualUsageBytes / BYTES_PER_MB;
 
@@ -383,11 +383,11 @@ namespace CloudCore.Services.Implementations
                 teamspace.StorageUsedMb = actualUsageMb;
 
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to recalculate storage for teamspace {TeamspaceId}", teamspaceId);
                 throw;
             }

@@ -1,6 +1,6 @@
 ﻿using CloudCore.Common.Errors;
 using CloudCore.Services.Implementations;
-using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

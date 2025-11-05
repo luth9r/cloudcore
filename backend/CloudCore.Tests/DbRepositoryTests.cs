@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CloudCore.Data.Context;
+﻿using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
-using CloudCore.Services.Implementations;
+using CloudCore.Services.Implementations.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;

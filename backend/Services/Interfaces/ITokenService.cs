@@ -1,5 +1,5 @@
-﻿using CloudCore.Domain.Entities;
-using System.Security.Claims;
+﻿using System.Security.Claims;
+using CloudCore.Domain.Entities;
 
 namespace CloudCore.Services.Interfaces
 {
@@ -40,6 +40,7 @@ namespace CloudCore.Services.Interfaces
         /// Verifies email verification token and marks user email as verified
         /// </summary>
         /// <param name="token">Email verification JWT token</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>True if token is valid and email is successfully verified, false otherwise</returns>
         Task<bool> VerifyEmailTokenAsync(string token, CancellationToken cancellationToken);
 
@@ -58,6 +59,7 @@ namespace CloudCore.Services.Interfaces
         /// Verifies password reset token and extracts user ID
         /// </summary>
         /// <param name="token">Password reset JWT token</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>User ID if token is valid and not expired, null otherwise</returns>
         Task<int?> VerifyPasswordResetTokenAsync(string token, CancellationToken cancellationToken);
 

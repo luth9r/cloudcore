@@ -1,10 +1,5 @@
-﻿using System.IO;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using CloudCore.Data.Context;
-using CloudCore.Domain.Entities;
+﻿using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace CloudCore.Services.Implementations
 {

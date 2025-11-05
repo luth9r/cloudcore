@@ -1,14 +1,9 @@
-
-using System.Security.Claims;
 using CloudCore.Common.Errors;
-using CloudCore.Common.Models;
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
-using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
 
 namespace CloudCore.Controllers;
 

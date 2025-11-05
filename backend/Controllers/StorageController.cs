@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 using CloudCore.Contracts.Responses;
 using CloudCore.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -33,16 +32,17 @@ namespace CloudCore.Controllers
         /// Gets the user's personal storage usage and limit
         /// </summary>
         /// <param name="userId">User ID from route</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Storage information including used space, limit, and percentage</returns>
         [HttpGet("personal")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> GetPersonalStorageInfo([Required] int userId)
+        public async Task<IActionResult> GetPersonalStorageInfo([Required] int userId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Fetching personal storage info for user {UserId}", userId);
 
-            var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId);
+            var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId, cancellationToken);
 
             var percentageUsed = limitMb > 0 ? (double)usedMb / limitMb * 100 : 0;
 
@@ -63,19 +63,21 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">User ID from route (for authorization)</param>
         /// <param name="teamspaceId">Teamspace ID to get storage for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Teamspace storage information</returns>
         [HttpGet("teamspace/{teamspaceId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetTeamspaceStorageInfo(
             [Required] int userId,
-            [Required] int teamspaceId)
+            [Required] int teamspaceId,
+            CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Fetching teamspace storage info. UserId={UserId}, TeamspaceId={TeamspaceId}",
                 userId, teamspaceId);
 
-            var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId);
+            var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId, cancellationToken);
 
             var percentageUsed = limitMb > 0 ? (double)usedMb / limitMb * 100 : 0;
 
@@ -97,18 +99,19 @@ namespace CloudCore.Controllers
         /// Useful for fixing inconsistencies
         /// </summary>
         /// <param name="userId">User ID to recalculate for</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Updated storage information</returns>
         [HttpPost("personal/recalculate")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> RecalculatePersonalStorage([Required] int userId)
+        public async Task<IActionResult> RecalculatePersonalStorage([Required] int userId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Recalculating personal storage for user {UserId}", userId);
 
-            await _storageTrackingService.RecalculatePersonalStorageAsync(userId);
+            await _storageTrackingService.RecalculatePersonalStorageAsync(userId, cancellationToken);
 
-            var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId);
+            var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId, cancellationToken);
 
             return Ok(new
             {
@@ -126,21 +129,22 @@ namespace CloudCore.Controllers
         /// </summary>
         /// <param name="userId">User ID (for authorization)</param>
         /// <param name="teamspaceId">Teamspace ID to recalculate</param>
+        /// <param name="cancellationToken">Token to cancel the operation if client disconnects</param>
         /// <returns>Updated storage information</returns>
         [HttpPost("teamspace/{teamspaceId}/recalculate")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> RecalculateTeamspaceStorage(
             [Required] int userId,
-            [Required] int teamspaceId)
+            [Required] int teamspaceId, CancellationToken cancellationToken)
         {
 
             _logger.LogInformation("Recalculating teamspace storage. UserId={UserId}, TeamspaceId={TeamspaceId}",
                 userId, teamspaceId);
 
-            await _storageTrackingService.RecalculateTeamspaceStorageAsync(teamspaceId);
+            await _storageTrackingService.RecalculateTeamspaceStorageAsync(teamspaceId, cancellationToken);
 
-            var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId);
+            var (usedMb, limitMb) = await _storageTrackingService.GetTeamspaceStorageInfoAsync(teamspaceId, cancellationToken);
 
             return Ok(new
             {

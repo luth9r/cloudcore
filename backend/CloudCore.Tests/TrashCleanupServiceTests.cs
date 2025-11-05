@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CloudCore.Domain.Entities;
+﻿using CloudCore.Domain.Entities;
 using CloudCore.Services.Implementations;
 using CloudCore.Services.Interfaces;
+using CloudCore.Services.Interfaces.IRepositories;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

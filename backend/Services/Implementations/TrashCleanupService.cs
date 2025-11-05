@@ -1,8 +1,6 @@
-﻿using CloudCore.Data.Context;
-using CloudCore.Domain.Entities;
+﻿using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using CloudCore.Services.Interfaces.IRepositories;
 
 namespace CloudCore.Services.Implementations
 {

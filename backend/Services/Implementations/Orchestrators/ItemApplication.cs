@@ -1,15 +1,14 @@
 ﻿using CloudCore.Common.Errors;
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
-using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+using CloudCore.Services.Interfaces.IRepositories;
+using CloudCore.Services.Interfaces.Orchestrators;
 using Microsoft.EntityFrameworkCore;
 using static CloudCore.Contracts.Responses.ItemResultResponses;
 
-namespace CloudCore.Services.Implementations
+namespace CloudCore.Services.Implementations.Orchestrators
 {
     public class ItemApplication : IItemApplication
     {
@@ -35,16 +34,14 @@ namespace CloudCore.Services.Implementations
         private IAsyncEnumerable<Item> CreateItemStream(int userId, Item item, CancellationToken cancellationToken)
         {
             if (item.Type == "folder")
-            {
                 return _itemRepository.GetAllChildItemsAsync(userId, item.Id, cancellationToken).Prepend(item);
-            }
             else
             {
                 return AsyncEnumerable.Repeat(item, 1);
             }
         }
 
-        private async Task ProcessItemStreamsAsync(int userId, Item rootItem, Func<IAsyncEnumerable<Item>, IAsyncEnumerable<Item>> prepare, Func<int, IAsyncEnumerable<Item>, bool, Task> storageAction, bool isAdding, CancellationToken cancellationToken)
+        private async Task ProcessItemStreamsAsync(int userId, Item rootItem, Func<IAsyncEnumerable<Item>, IAsyncEnumerable<Item>> prepare, Func<int, IAsyncEnumerable<Item>, bool, CancellationToken, Task> storageAction, bool isAdding, CancellationToken cancellationToken)
         {
             var streamForDb = CreateItemStream(userId, rootItem, cancellationToken);
             var preparedForDb = prepare(streamForDb);
@@ -52,7 +49,7 @@ namespace CloudCore.Services.Implementations
             await _itemRepository.UpdateItemsInTransactionAsync(preparedForDb, cancellationToken);
 
             var streamForStorage = CreateItemStream(userId, rootItem, cancellationToken);
-            await storageAction(userId, streamForStorage, isAdding);
+            await storageAction(userId, streamForStorage, isAdding, cancellationToken);
         }
         #endregion
 
@@ -229,7 +226,7 @@ namespace CloudCore.Services.Implementations
                     totalBytes += item.FileSize ?? 0;
             }
 
-            var canRestore = await _storageTrackingService.CanAddToPersonalStorageAsync(userId, totalBytes);
+            var canRestore = await _storageTrackingService.CanAddToPersonalStorageAsync(userId, totalBytes, cancellationToken);
             if (!canRestore)
             {
                 _logger.LogWarning("Storage limit exceeded for restore. UserId={UserId}, ItemId={ItemId}", userId, itemId);
@@ -274,9 +271,7 @@ namespace CloudCore.Services.Implementations
 
             var item = await _itemRepository.GetItemAsync(itemId, userId, null, cancellationToken);
             if (item == null)
-            {
                 _logger.LogInformation("Item retrieved successfully. ItemId={ItemId}, CurrentName={CurrentName}, ParentId={ParentId}", item!.Id, item.Name, item.ParentId);
-            }
             else
             {
                 _logger.LogWarning("Item not found after existence validation. This should not happen. UserId={UserId}, ItemId={ItemId}", userId, itemId);
@@ -325,7 +320,7 @@ namespace CloudCore.Services.Implementations
             }
 
             IAsyncEnumerable<Item> itemsToRename;
-            var folderPath = String.Empty;
+            var folderPath = string.Empty;
             if (item.Type == "folder")
             {
                 itemsToRename = _itemRepository.GetAllChildItemsAsync(userId, itemId, cancellationToken)
@@ -350,7 +345,7 @@ namespace CloudCore.Services.Implementations
                 return new RenameResult
                 {
                     IsSuccess = true,
-                    Message = "Item renamed succesfully.",
+                    Message = "Item renamed successfully.",
                     ItemId = item.Id,
                     NewName = newName,
                     Timestamp = DateTime.UtcNow
@@ -363,7 +358,7 @@ namespace CloudCore.Services.Implementations
                 {
                     IsSuccess = false,
                     ErrorCode = ErrorCodes.UNEXPECTED_ERROR,
-                    Message = "An unexpected error occured."
+                    Message = "An unexpected error occurred."
                 };
                 throw;
             }
@@ -456,9 +451,7 @@ namespace CloudCore.Services.Implementations
 
                 string destinationFolderPath;
                 if (isMovingToRoot)
-                {
                     destinationFolderPath = basePath;
-                }
                 else
                 {
                     var targetRelativePath = await _itemRepository.GetFolderPathAsync(targetItem!, cancellationToken);
@@ -608,10 +601,10 @@ namespace CloudCore.Services.Implementations
                 };
             }
 
-            var canUpload = await _storageTrackingService.CanAddToPersonalStorageAsync(userId, file.Length);
+            var canUpload = await _storageTrackingService.CanAddToPersonalStorageAsync(userId, file.Length, cancellationToken);
             if (!canUpload)
             {
-                var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId);
+                var (usedMb, limitMb) = await _storageTrackingService.GetPersonalStorageInfoAsync(userId, cancellationToken);
                 long fileSizeMb = file.Length / (1024 * 1024);
 
                 _logger.LogWarning("Storage limit exceeded for user {UserId}. Used: {UsedMb}MB, Limit: {LimitMb}MB, Attempting: {FileMb}MB",
@@ -626,7 +619,7 @@ namespace CloudCore.Services.Implementations
             }
             Item? createdItem = null;
 
-            string targetDirectory = String.Empty;
+            string targetDirectory = string.Empty;
 
             if (parentId.HasValue)
             {
@@ -665,7 +658,7 @@ namespace CloudCore.Services.Implementations
                 await _itemRepository.AddItemInTranscationAsync(createdItem, cancellationToken);
                 _logger.LogInformation("Item added successfully in DB.");
 
-                await _storageTrackingService.AddToPersonalStorageAsync(userId, file.Length);
+                await _storageTrackingService.AddToPersonalStorageAsync(userId, file.Length, cancellationToken);
                 _logger.LogInformation("Personal storage updated for user {UserId} (+{SizeMb}MB)",
                     userId, file.Length / (1024 * 1024));
 

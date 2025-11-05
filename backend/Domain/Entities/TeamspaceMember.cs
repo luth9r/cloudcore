@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace CloudCore.Domain.Entities;
+﻿namespace CloudCore.Domain.Entities;
 
 public partial class TeamspaceMember
 {

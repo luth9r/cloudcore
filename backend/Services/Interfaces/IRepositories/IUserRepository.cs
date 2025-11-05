@@ -1,6 +1,6 @@
 ﻿using CloudCore.Domain.Entities;
 
-namespace CloudCore.Services.Interfaces
+namespace CloudCore.Services.Interfaces.IRepositories
 {
     /// <summary>
     /// Repository for managing user data in the database

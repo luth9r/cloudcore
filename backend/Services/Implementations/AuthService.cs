@@ -1,16 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using BCrypt.Net;
-using CloudCore.Common.Models;
 using CloudCore.Contracts.Requests;
 using CloudCore.Contracts.Responses;
-using CloudCore.Data.Context;
 using CloudCore.Domain.Entities;
 using CloudCore.Services.Interfaces;
-using FluentEmail.Core;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using CloudCore.Services.Interfaces.IRepositories;
 
 namespace CloudCore.Services.Implementations;
 
@@ -72,7 +64,8 @@ public class AuthService : IAuthService
             await _emailSendService.SendEmailVerificationAsync(
                 user.Email,
                 verifyUrl,
-                "Welcome to CloudCore - Verify your email");
+                "Welcome to CloudCore - Verify your email",
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -140,7 +133,8 @@ public class AuthService : IAuthService
             await _emailSendService.SendPasswordResetAsync(
                 user.Email,
                 resetUrl,
-                "CloudCore - Password Reset Request"
+                "CloudCore - Password Reset Request",
+                cancellationToken
             );
 
             _logger.LogInformation($"Password reset email sent to: {email}");
