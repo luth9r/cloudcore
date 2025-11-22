@@ -267,108 +267,109 @@ namespace CloudCore.Services.Implementations
             }
         }
 
-        public async Task<RenameResult> RenameItemAsync(int userId, int itemId, string newName)
-        {
-            _logger.LogInformation("Rename request received. UserId={UserId}, ItemId={ItemId}, NewName={NewName}",
+public async Task<RenameResult> RenameItemAsync(int userId, int itemId, string newName)
+{
+    _logger.LogInformation("Rename request received. UserId={UserId}, ItemId={ItemId}, NewName={NewName}",
         userId, itemId, newName);
 
-            var item = await _itemRepository.GetItemAsync(userId, itemId, null);
-            if (item == null)
-            {
-                _logger.LogInformation("Item retrieved successfully. ItemId={ItemId}, CurrentName={CurrentName}, ParentId={ParentId}", item!.Id, item.Name, item.ParentId);
-            }
-            else
-            {
-                _logger.LogWarning("Item not found after existence validation. This should not happen. UserId={UserId}, ItemId={ItemId}", userId, itemId);
-                return new RenameResult
-                {
-                    IsSuccess = false,
-                    ErrorCode = ErrorCodes.ITEM_NOT_FOUND,
-                    Message = "Item to rename not found."
-                };
-            }
+    var item = await _itemRepository.GetItemAsync(userId, itemId, null);
+    if (item == null)
+    {
+        _logger.LogWarning("Item not found. UserId={UserId}, ItemId={ItemId}", userId, itemId);
+        return new RenameResult
+        {
+            IsSuccess = false,
+            ErrorCode = ErrorCodes.ITEM_NOT_FOUND,
+            Message = "Item to rename not found."
+        };
+    }
 
-            var itemNameValidation = _validationService.ValidateItemName(newName);
-            if (!itemNameValidation.IsValid)
-            {
-                _logger.LogWarning("Item name validation failed. ErrorCode={ErrorCode}, Message={Message}", itemNameValidation.ErrorCode, itemNameValidation.ErrorMessage);
-                return new RenameResult
-                {
-                    IsSuccess = false,
-                    ErrorCode = itemNameValidation.ErrorCode!,
-                    Message = itemNameValidation.ErrorMessage!
-                };
-            }
+    _logger.LogInformation("Item retrieved successfully. ItemId={ItemId}, CurrentName={CurrentName}, ParentId={ParentId}", 
+        item.Id, item.Name, item.ParentId);
 
-            var itemExistsValidation = await _validationService.ValidateItemExistsAsync(itemId, userId);
-            if (!itemExistsValidation.IsValid)
-            {
-                _logger.LogWarning("Item existence validation failed. UserId={UserId}, ItemId={ItemId}, ErrorCode={ErrorCode}", userId, itemId, itemExistsValidation.ErrorCode);
-                return new RenameResult
-                {
-                    IsSuccess = false,
-                    ErrorCode = itemExistsValidation.ErrorCode!,
-                    Message = itemExistsValidation.ErrorMessage!
-                };
-            }
+    var itemNameValidation = _validationService.ValidateItemName(newName);
+    if (!itemNameValidation.IsValid)
+    {
+        _logger.LogWarning("Item name validation failed. ErrorCode={ErrorCode}, Message={Message}", 
+            itemNameValidation.ErrorCode, itemNameValidation.ErrorMessage);
+        return new RenameResult
+        {
+            IsSuccess = false,
+            ErrorCode = itemNameValidation.ErrorCode!,
+            Message = itemNameValidation.ErrorMessage!
+        };
+    }
 
-            var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(newName, item.Type, userId, item.ParentId, itemId, true);
-            if (!uniquenessValidation.IsValid)
-            {
-                _logger.LogWarning("Uniqueness validation failed. ItemId={ItemId}, NewName={NewName}, ErrorCode={ErrorCode}", item.Id, newName, uniquenessValidation.ErrorCode);
-                return new RenameResult
-                {
-                    IsSuccess = false,
-                    ErrorCode = uniquenessValidation.ErrorCode!,
-                    Message = uniquenessValidation.ErrorMessage!
-                };
-            }
+    var itemExistsValidation = await _validationService.ValidateItemExistsAsync(itemId, userId);
+    if (!itemExistsValidation.IsValid)
+    {
+        _logger.LogWarning("Item existence validation failed. UserId={UserId}, ItemId={ItemId}, ErrorCode={ErrorCode}", 
+            userId, itemId, itemExistsValidation.ErrorCode);
+        return new RenameResult
+        {
+            IsSuccess = false,
+            ErrorCode = itemExistsValidation.ErrorCode!,
+            Message = itemExistsValidation.ErrorMessage!
+        };
+    }
 
-            IAsyncEnumerable<Item> itemsToSoftDelete;
-            var folderPath = String.Empty;
-            if (item.Type == "folder")
-            {
-                itemsToSoftDelete = _itemRepository.GetAllChildItemsAsync(userId, itemId)
-                                                  .Prepend(item);
+    var uniquenessValidation = await _validationService.ValidateNameUniquenessAsync(newName, item.Type, userId, item.ParentId, itemId, true);
+    if (!uniquenessValidation.IsValid)
+    {
+        _logger.LogWarning("Uniqueness validation failed. ItemId={ItemId}, NewName={NewName}, ErrorCode={ErrorCode}", 
+            item.Id, newName, uniquenessValidation.ErrorCode);
+        return new RenameResult
+        {
+            IsSuccess = false,
+            ErrorCode = uniquenessValidation.ErrorCode!,
+            Message = uniquenessValidation.ErrorMessage!
+        };
+    }
 
-                folderPath = await _itemRepository.GetFolderPathAsync(item);
-                folderPath = Path.Combine(_itemStorageService.GetUserStoragePath(userId), folderPath);
-                _logger.LogInformation("Folder Path is {FolderPath}", folderPath);
-            }
-            else
-            {
-                itemsToSoftDelete = AsyncEnumerable.Repeat(item, 1);
-            }
+    IAsyncEnumerable<Item> itemsToRename;
+    var folderPath = String.Empty;
+    if (item.Type == "folder")
+    {
+        itemsToRename = _itemRepository.GetAllChildItemsAsync(userId, itemId)
+                                              .Prepend(item);
 
-            var preparedItemsAsync = _itemManagerService.PrepareItemsForRenaming(item, newName, itemsToSoftDelete, folderPath);
+        folderPath = await _itemRepository.GetFolderPathAsync(item);
+        folderPath = Path.Combine(_itemStorageService.GetUserStoragePath(userId), folderPath);
+        _logger.LogInformation("Folder Path is {FolderPath}", folderPath);
+    }
+    else
+    {
+        itemsToRename = AsyncEnumerable.Repeat(item, 1);
+    }
 
-            try
-            {
-                await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
-                _logger.LogInformation("Item renamed successfully in DB. ItemId={ItemId}, NewName={NewName}", item.Id, newName);
+    var preparedItemsAsync = _itemManagerService.PrepareItemsForRenaming(item, newName, itemsToRename, folderPath);
 
-                return new RenameResult
-                {
-                    IsSuccess = true,
-                    Message = "Item renamed succesfully.",
-                    ItemId = item.Id,
-                    NewName = newName,
-                    Timestamp = DateTime.UtcNow
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Rename operation failed. UserId={UserId}, ItemId={ItemId}, NewName={NewName}", userId, itemId, newName);
-                return new RenameResult
-                {
-                    IsSuccess = false,
-                    ErrorCode = ErrorCodes.UNEXPECTED_ERROR,
-                    Message = "An unexpected error occured."
-                };
-                throw;
-            }
+    try
+    {
+        await _itemRepository.UpdateItemsInTransactionAsync(preparedItemsAsync);
+        _logger.LogInformation("Item renamed successfully in DB. ItemId={ItemId}, NewName={NewName}", item.Id, newName);
 
-        }
+        return new RenameResult
+        {
+            IsSuccess = true,
+            Message = "Item renamed successfully.",
+            ItemId = item.Id,
+            NewName = newName,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Rename operation failed. UserId={UserId}, ItemId={ItemId}, NewName={NewName}", 
+            userId, itemId, newName);
+        return new RenameResult
+        {
+            IsSuccess = false,
+            ErrorCode = ErrorCodes.UNEXPECTED_ERROR,
+            Message = "An unexpected error occurred."
+        };
+    }
+}
 
 
         public async Task<MoveResult> MoveItemAsync(int userId, int itemId, int? targetId)
