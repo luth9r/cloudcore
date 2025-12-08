@@ -49,7 +49,7 @@ namespace CloudCore.Services.Implementations
 
             await foreach (var item in items)
             {
-                if (item.IsDeleted == false)
+                if (item.IsDeleted == true)
                     continue;
 
                 if (item.Type == "file")
