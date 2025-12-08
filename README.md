@@ -1,14 +1,30 @@
 # CloudCore - Cloud Storage API
 
-A production-ready cloud storage platform API built with ASP.NET Core, featuring secure file management, team collaboration, and intelligent storage tracking.
+Cloud storage platform API built with ASP.NET Core, featuring secure file management, team collaboration, and intelligent storage tracking.
 
 [College term paper]
 
-## 🚀 Overview
+## Installation
+First install Docker. See https://www.youtube.com/watch?v=JBEUKrjbWqg
+(after installing Docker, you might need to reboot your pc)
+Open PowerShell and navigate to the project directory
+```powershell
+cd Path\to\Your\Project
+```
+Make sure you see docker-compose.yml in your current directory.
+Then you can use those commands:
+```dockerfile
+# Full build and run
+docker-compose up --build
+# Stop all containers
+docker-compose down -v
+```
+
+## Overview
 
 CloudCore is a comprehensive backend system for cloud file storage and collaboration, similar to Google Drive or Dropbox. It provides RESTful APIs for file/folder operations, team workspaces (teamspaces), user authentication, and storage quota management.
 
-## 🎯 Key Features
+## Key Features
 
 ### File Management
 - **CRUD Operations**: Upload, download, rename, move, and delete files/folders
@@ -35,133 +51,8 @@ CloudCore is a comprehensive backend system for cloud file storage and collabora
 - **Path Traversal Protection**: Prevents unauthorized file system access
 - **User Isolation**: Strict enforcement of user-owned resources
 
-## 🧩 Core Components
 
-### Controllers Layer
-Handles HTTP requests and responses, delegates business logic to services:
-
-- **`AuthController`**: User registration and login
-- **`ItemController`**: Personal file/folder operations  
-- **`TeamspaceController`**: Teamspace management and member operations
-- **`TeamspaceItemController`**: File operations within teamspaces
-- **`StorageController`**: Storage usage and quota information
-
-### Service Layer
-Implements business logic with single-responsibility interfaces:
-
-#### Application Services (Orchestration)
-- **`IItemApplication`**: Orchestrates file operations with validation
-- **`ITeamspaceApplication`**: Coordinates teamspace item workflows
-
-#### Domain Services (Business Logic)
-- **`IItemManagerService`**: Prepares entities for operations (rename, move, delete)
-- **`IValidationService`**: Validates names, files, permissions, and business rules
-- **`ITeamspaceService`**: Core teamspace and membership logic
-- **`IStorageTrackingService`**: Manages storage quota updates
-
-#### Infrastructure Services
-- **`IItemStorageService`**: Physical file system operations
-- **`IZipArchiveService`**: ZIP archive creation for downloads
-- **`IAuthService`**: Authentication and JWT generation
-- **`ITrashCleanupService`**: Background job for expired item deletion
-
-#### Data Access
-- **`IItemRepository`**: Database queries with async enumerable support
-- **`ISubscriptionService`**: User plan limits and restrictions
-
-### Domain Models
-
-**Core Entities:**
-- `User`: Authentication and subscription information
-- `Item`: Files and folders with hierarchical relationships
-- `Teamspace`: Shared workspaces with storage limits
-- `TeamspaceMember`: User roles within teamspaces
-
-**Key Relationships:**
-- Self-referencing hierarchy for folders
-- User ownership of items
-- Teamspace membership with permissions
-- Soft delete tracking with timestamps
-
-### 🛠️ Technology Stack
-
-- Framework: ASP.NET Core 8.0
-- Database: MySQL with Entity Framework Core 9.0
-- ORM: Pomelo Entity Framework MySQL provider
-- Authentication: JWT Bearer tokens (System.IdentityModel.Tokens.Jwt)
-- Password Hashing: BCrypt.Net-Next
-- Logging: Serilog with file rotation and console output
-- API Documentation: Swagger
-- Environment Config: DotNetEnv for .env file support
-- Natural Sorting: NaturalSort.Extension for intuitive file ordering
-
-### 📊 Database Schema
-Key Tables
-
-- users: Authentication, subscription plans, storage tracking
-- items: Files and folders with parent-child relationships
-- teamspaces: Shared workspaces with admin and limits
-- teamspace_members: User roles within teamspaces
-
-Optimized Indexes
-
-- idx_parent_user: Fast hierarchical queries
-- idx_user_type: Efficient user item filtering
-- idx_teamspace_items: Quick teamspace item lookups
-- idx_name: Name-based searches
-
-### 🔐 Security Features
-
-JWT Authentication:
-
-- 7-day token expiration
-- User ID, username, and email in claims
-- Configurable secret key via environment
-
-Authorization Filter:
-
-- Validates JWT claims match route userId parameter
-- Prevents users from accessing others' resources
-- Applied globally to all controllers
-
-Path Security:
-
-- Prevents directory traversal attacks
-- Validates all file paths within user storage
-- Rejects paths containing .. or absolute paths
-
-Soft Delete:
-
-- 30-day retention before permanent deletion
-- Allows data recovery
-- Background cleanup service
-
-CORS Configuration:
-
-- AllowAll policy (configurable for production)
-- Supports cross-origin requests
-
-
-Global Error Handler:
-
-- Catches all exceptions
-- Returns user-friendly error messages
-- Logs detailed error information
-
-
-
-📈 Performance Optimizations
-
-- Async Streams: Memory-efficient processing of large datasets
-- Batch Operations: Bulk database updates with configurable batch sizes (500 default)
-- Read Optimization: AsNoTracking() for read-only queries
-- Natural Sorting: Efficient file name sorting with NaturalSort.Extension
-- Pagination: Prevents loading excessive data in list endpoints
-- Transaction Batching: Groups multiple operations for atomic commits
-- Lazy Loading: Hierarchical queries load data on-demand
-- Connection Pooling: DbContextFactory for efficient connection reuse
-
-📝 API Reference
+API Reference
 File Operations
 ```
 GET    /user/{userId}/mydrive    
@@ -208,81 +99,3 @@ GET    /user/{userId}/storage/teamspace/{id}              # Teamspace storage in
 POST   /user/{userId}/storage/personal/recalculate        # Recalculate personal
 POST   /user/{userId}/storage/teamspace/{id}/recalculate  # Recalculate teamspace
 ```
-
-🎓 Code Quality & Best Practices
-Logging
-
-- Structured logging with Serilog
-- Log levels: Information, Warning, Error
-- File rotation: Daily with 31-day retention
-- Console and file sinks
-- Contextual logging with user IDs and operation details
-
-Error Handling
-
-- Global middleware catches all exceptions
-- Specific error codes for each failure type
-- Transaction rollback on failures
-
-Documentation
-
-- Swagger UI with detailed endpoint descriptions
-- Request/response examples
-- Parameter descriptions and constraints
-
-Validation
-
-- Multi-layer validation (file, name, authorization)
-- Descriptive error codes and messages
-- Path traversal prevention
-- File size and type restrictions
-- Business rule enforcement
-
-📦 Project Structure Details
-#### Contracts (DTOs)
-
-- Requests: Input models with data annotations
-- Responses: Output models with computed properties
-- Clear separation of concerns
-- Validation attributes on request models
-
-#### Services
-
-- Interfaces: Define contracts
-- Implementations: Concrete business logic
-- Dependency injection for all services
-- Scoped lifetime for database-dependent services
-
-#### Domain
-
-- Entities: EF Core models
-- Navigation properties for relationships
-- Computed properties (IsDeleted, etc.)
-- Timestamps for audit trail
-
-#### Common
-
-- Errors: Centralized error code constants
-- Validation: Reusable validation result models
-- Models: Shared DTOs (e.g., TeamspaceLimits)
-
-### 🔧 Configuration
-#### Subscription Plans
-Configured in ISubscriptionService:
-
-- Free: 10GB personal, 5GB teamspace, 2 teamspaces, 5 members
-- Premium: 20GB personal, 50GB teamspace, 10 teamspaces, 25 members
-- Enterprise: 50GB personal, 500GB teamspace, unlimited teamspaces, 100 members
-
-#### File Validation
-
-- Max file size: 2GB
-- Supported formats: 100+ file types
-- Reserved names: Windows reserved names (CON, PRN, etc.)
-- Invalid characters: < > : " | ? * \0 ,
-
-#### Storage Paths
-
-- Base path: /app/storage (configurable)
-- User structure: /app/storage/users/user{id}/
-- Relative paths stored in database
