@@ -67,7 +67,7 @@ namespace CloudCore.Services.Implementations
             {
                 var emailToken = _tokenService.GenerateEmailChangeToken(user, newEmail);
 
-                var verifyUrl = $"https://localhost:3000/verify-email.html?token={emailToken}&type=change";
+                var verifyUrl = $"http://localhost:3000/verify-email.html?token={emailToken}&type=change";
 
                 await _emailSendService.SendEmailVerificationAsync(
                     user.Email,
