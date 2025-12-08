@@ -3,9 +3,6 @@ services:
     build: ./frontend
     ports:
       - "3000:80"
-      - "3443:443"
-    volumes:
-      - ./frontend/certs:/etc/nginx/ssl:ro
     depends_on:
       - backend
     networks:
@@ -55,7 +52,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./database/init:/docker-entrypoint-initdb.d
     ports:
-      - "3306:3306"
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -79,4 +76,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-
