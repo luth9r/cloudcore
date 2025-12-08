@@ -70,7 +70,7 @@ public class AuthService : IAuthService
         try
         {
             var emailToken = _tokenService.GenerateEmailVerificationToken(user);
-            var verifyUrl = $"https://localhost:3443/verify-email.html?token={emailToken}";
+            var verifyUrl = $"https://localhost:3000/verify-email.html?token={emailToken}";
 
             await _emailSendService.SendEmailVerificationAsync(
                 user.Email,
